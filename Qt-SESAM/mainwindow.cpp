@@ -2820,6 +2820,12 @@ void MainWindow::onMasterPasswordEntered(void)
 {
   Q_D(MainWindow);
   bool ok = true;
+
+  if (d->masterPasswordDialog->wasAuthenticatedByCard()) {
+      show();
+      return;
+  }
+
   qsrand(static_cast<uint>(QDateTime::currentDateTime().toMSecsSinceEpoch()));
   const QString masterPwd = d->masterPasswordDialog->masterPassword();
   const bool repeatedPasswordEntry = d->masterPasswordDialog->repeatedPasswordEntry();

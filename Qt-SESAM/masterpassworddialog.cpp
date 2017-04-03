@@ -45,6 +45,7 @@ MasterPasswordDialog::MasterPasswordDialog(QWidget *parent)
   ui->infoLabel->setStyleSheet("font-weight: bold");
   setWindowTitle(QString("%1 %2").arg(AppName).arg(isPortable() ? " - PORTABLE" : ""));
   QObject::connect(ui->okPushButton, SIGNAL(pressed()), SLOT(okClicked()));
+  QObject::connect(ui->javacardButton, SIGNAL(pressed()), SLOT(javaCardClicked()));
   QObject::connect(ui->passwordLineEdit, SIGNAL(textEdited(QString)), SLOT(checkPasswords()));
   QObject::connect(ui->repeatPasswordLineEdit, SIGNAL(textEdited(QString)), SLOT(checkPasswords()));
   setRepeatPassword(false);
@@ -137,6 +138,16 @@ void MasterPasswordDialog::okClicked(void)
   else {
     accept();
   }
+}
+
+void MasterPasswordDialog::javaCardClicked() {
+    ui->putYourCard->setEnabled(true);
+
+    authenticatedByCard  = true;
+
+    // Do some magic
+
+    accept();
 }
 
 
