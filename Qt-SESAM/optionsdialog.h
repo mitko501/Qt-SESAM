@@ -129,12 +129,17 @@ public:
   int activeTab(void) const;
   void setActiveTab(int);
 
+  bool javaCard();
+  void setJavaCard(bool);
+
 signals:
   void serverCertificatesUpdated(QList<QSslCertificate>);
   void saltLengthChanged(int);
   void maxPasswordLengthChanged(int);
   void defaultPasswordLengthChanged(int);
   void masterPasswordInvalidationTimeMinsChanged(int);
+  void removeJC();
+  void connectJC();
 
 private slots:
   void chooseSyncFile(void);
@@ -149,6 +154,7 @@ private slots:
 
 private:
   Ui::OptionsDialog *ui;
+  bool _javaCard;
 
   QScopedPointer<OptionsDialogPrivate> d_ptr;
   Q_DECLARE_PRIVATE(OptionsDialog)

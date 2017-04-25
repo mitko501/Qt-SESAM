@@ -19,6 +19,7 @@
 
 #include <QDebug>
 #include "masterpassworddialog.h"
+#include "mainwindow.h"
 #include "ui_masterpassworddialog.h"
 #include "passwordchecker.h"
 #include "util.h"
@@ -30,8 +31,10 @@ class MasterPasswordDialogPrivate
 public:
   MasterPasswordDialogPrivate(void)
     : repeatedPasswordEntry(false)
+    , settings(QSettings::IniFormat, QSettings::UserScope, AppCompanyName, AppName)
   { /* ... */ }
   bool repeatedPasswordEntry;
+  QSettings settings;
 };
 
 
@@ -52,6 +55,12 @@ MasterPasswordDialog::MasterPasswordDialog(QWidget *parent)
   invalidatePassword();
   checkPasswords();
   resize(width(), 1);
+
+  Q_D(MasterPasswordDialog);
+  if (!d->settings.value("java_card/enabled").toBool()) {
+    ui->javacardButton->hide();
+  }
+  ui->putYourCard->hide();
 }
 
 
@@ -141,13 +150,26 @@ void MasterPasswordDialog::okClicked(void)
 }
 
 void MasterPasswordDialog::javaCardClicked() {
-    ui->putYourCard->setEnabled(true);
 
-    authenticatedByCard  = true;
+  ui->putYourCard->setVisible(true);
 
-    // Do some magic
+  authenticatedByCard  = true;
+  // TODO: Generate random number
 
-    accept();
+  // Encrypt with:
+  Q_D(MasterPasswordDialog);
+  d->settings.value("java_card/public_key"); // Be aware of QXXXX type, depends on PKCS#11
+
+  // Comunicate with java_card:
+    // Find reader
+    ui->putYourCard->show();
+    // Find card
+    // Exchange message
+
+  // Check whether sent random number is equal to received
+    // Accept/Reject(It should be possible to continue with login via admin password)
+
+  accept();
 }
 
 

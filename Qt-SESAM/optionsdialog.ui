@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>343</width>
-    <height>449</height>
+    <width>371</width>
+    <height>486</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tabSync">
       <attribute name="title">
@@ -518,6 +518,9 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabMisc">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <attribute name="title">
        <string>Misc</string>
       </attribute>
@@ -576,6 +579,66 @@
         </spacer>
        </item>
       </layout>
+     </widget>
+     <widget class="QWidget" name="tabJavaCard">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <attribute name="title">
+       <string>JavaCard</string>
+      </attribute>
+      <widget class="QLabel" name="connectedJCLabel">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>281</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Your JavaCard is connected and ready to use</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="removeJC">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>40</y>
+         <width>121</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Remove JavaCard</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="notConnectedJCLabel">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>331</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>JavaCard authentication is turned off</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="connectJC">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>40</y>
+         <width>121</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Connect JavaCard</string>
+       </property>
+      </widget>
      </widget>
     </widget>
    </item>

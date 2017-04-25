@@ -303,6 +303,8 @@ MainWindow::MainWindow(bool forceStart, QWidget *parent)
   QObject::connect(ui->easySelectorWidget, SIGNAL(valuesChanged(int, int)), SLOT(onEasySelectorValuesChanged(int, int)));
   QObject::connect(d->optionsDialog, SIGNAL(maxPasswordLengthChanged(int)), ui->easySelectorWidget, SLOT(setMaxLength(int)));
   QObject::connect(d->optionsDialog, SIGNAL(masterPasswordInvalidationTimeMinsChanged(int)), SLOT(masterPasswordInvalidationTimeMinsChanged(int)));
+  QObject::connect(d->optionsDialog, SIGNAL(connectJC()), SLOT(connectJC()));
+  QObject::connect(d->optionsDialog, SIGNAL(removeJC()), SLOT(removeJC()));
   QObject::connect(this, SIGNAL(backupFilesDeleted(bool)), SLOT(onBackupFilesRemoved(bool)));
   QObject::connect(this, SIGNAL(backupFilesDeleted(int)), SLOT(onBackupFilesRemoved(int)));
   resetAllFields();
@@ -1930,6 +1932,7 @@ void MainWindow::saveUiSettings(void)
   d->settings.setValue("misc/passwordFile", d->optionsDialog->passwordFilename());
   d->settings.setValue("misc/moreSettingsExpanded", d->expandableGroupBox->expanded());
   d->settings.setValue("misc/loggingEnabled", d->optionsDialog->loggingEnabled());
+  d->settings.setValue("java_card/enabled", d->optionsDialog->javaCard());
   d->settings.sync();
 }
 
@@ -1962,6 +1965,7 @@ void MainWindow::restoreUiSettings(void)
   d->optionsDialog->setDeleteUrl(DefaultSyncServerDeleteUrl);
   d->expandableGroupBox->setExpanded(d->settings.value("misc/moreSettingsExpanded", false).toBool());
   d->optionsDialog->setLoggingEnabled(d->settings.value("misc/loggingEnabled", false).toBool());
+  d->optionsDialog->setJavaCard(d->settings.value("java_card/enabled").toBool());
 }
 
 
@@ -2822,6 +2826,7 @@ void MainWindow::onMasterPasswordEntered(void)
   bool ok = true;
 
   if (d->masterPasswordDialog->wasAuthenticatedByCard()) {
+      //d->masterPassword = "Not used anymore!!!";
       show();
       return;
   }
@@ -3438,4 +3443,28 @@ void MainWindow::onSelectLanguage(QAction *action)
       }
     }
   }
+}
+
+void MainWindow::connectJC() {
+  Q_D(MainWindow);
+
+  // Connect to reader
+  // Find card
+  // Not sure whether it is necessary to ask for PIN
+  // Ask for public key
+  // store public key in:
+
+  d->settings.setValue("java_card/public_key", QString::fromStdString("key"));
+  d->optionsDialog->setJavaCard(true);
+  saveUiSettings();
+
+}
+
+void MainWindow::removeJC() {
+  Q_D(MainWindow);
+  // I think it is not necessary to contact Card at all
+  // Only thing to do here is to remove public_key from settings
+  d->optionsDialog->setJavaCard(false);
+  d->settings.remove("java_card/public_key");
+  saveUiSettings();
 }

@@ -88,6 +88,8 @@ OptionsDialog::OptionsDialog(QWidget *parent)
   QObject::connect(ui->maxPasswordLengthSpinBox, SIGNAL(valueChanged(int)), SIGNAL(maxPasswordLengthChanged(int)));
   QObject::connect(ui->defaultPasswordLengthSpinBox, SIGNAL(valueChanged(int)), SIGNAL(defaultPasswordLengthChanged(int)));
   QObject::connect(ui->masterPasswordInvalidationTimeMinsSpinBox, SIGNAL(valueChanged(int)), SIGNAL(masterPasswordInvalidationTimeMinsChanged(int)));
+  QObject::connect(ui->removeJC, SIGNAL(pressed()), SIGNAL(removeJC()));
+  QObject::connect(ui->connectJC, SIGNAL(pressed()), SIGNAL(connectJC()));
   QObject::connect(&d->NAM, SIGNAL(finished(QNetworkReply*)), SLOT(onReadFinished(QNetworkReply*)));
   QObject::connect(&d->NAM, SIGNAL(encrypted(QNetworkReply*)), SLOT(onEncrypted(QNetworkReply*)));
   QObject::connect(&d->NAM, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)), SLOT(sslErrorsOccured(QNetworkReply*,QList<QSslError>)));
@@ -539,6 +541,25 @@ void OptionsDialog::setSaltLength(int n)
   ui->saltLengthSpinBox->setValue(n);
 }
 
+bool OptionsDialog::javaCard() {
+  return _javaCard;
+}
+
+void OptionsDialog::setJavaCard(bool jc) {
+  _javaCard = jc;
+
+  if (jc) {
+    ui->notConnectedJCLabel->hide();
+    ui->connectJC->hide();
+    ui->connectedJCLabel->show();
+    ui->removeJC->show();
+  } else {
+      ui->notConnectedJCLabel->show();
+      ui->connectJC->show();
+      ui->connectedJCLabel->hide();
+      ui->removeJC->hide();
+  }
+}
 
 void OptionsDialog::chooseSyncFile(void)
 {

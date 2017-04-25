@@ -25,6 +25,7 @@
 #include <QCloseEvent>
 #include <QEvent>
 #include <QScopedPointer>
+#include <QSettings>
 
 namespace Ui {
 class MasterPasswordDialog;

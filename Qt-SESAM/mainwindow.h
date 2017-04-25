@@ -148,6 +148,8 @@ private slots:
   void onWriteFinished(QNetworkReply*);
   void cancelServerOperation(void);
   void removeOutdatedBackupFiles(void);
+  void connectJC();
+  void removeJC();
 #if HACKING_MODE_ENABLED
   void hackLegacyPassword(void);
 #endif
