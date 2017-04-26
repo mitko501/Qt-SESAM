@@ -12,19 +12,15 @@ public class SimpleApplet extends javacard.framework.Applet {
     final static byte CLA_SIMPLEAPPLET = (byte) 0xB0;
 
     // INSTRUCTIONS
-    final static byte INS_ENCRYPT = (byte) 0x50;
     final static byte INS_DECRYPT = (byte) 0x51;
-    final static byte INS_SETKEY = (byte) 0x52;
-    final static byte INS_HASH = (byte) 0x53;
-    final static byte INS_RANDOM = (byte) 0x54;
     final static byte INS_VERIFYPIN = (byte) 0x55;
     final static byte INS_SETPIN = (byte) 0x56;
     final static byte INS_RETURNDATA = (byte) 0x57;
-    final static byte INS_SIGNDATA = (byte) 0x58;
     final static byte INS_GETAPDUBUFF = (byte) 0x59;
-    final static byte INS_GENERATE_HOTP = (byte) 0x60;
-    final static byte INS_READ_HOTP = (byte) 0x62;
+    final static byte INS_SENDPUBLICKEY = (byte) 0x60;
 
+
+   
     final static short ARRAY_LENGTH = (short) 0xff;
     final static byte AES_BLOCK_LENGTH = (short) 0x16;
 
@@ -47,17 +43,20 @@ public class SimpleApplet extends javacard.framework.Applet {
     final static short SW_TransactionException_prefix = (short) 0xf400;
     final static short SW_CardRuntimeException_prefix = (short) 0xf500;
 
-    private AESKey m_aesKey = null;
-    private MessageDigest m_hash = null;
+    private Cipher m_decryptCipher = null;
     private OwnerPIN m_pin = null;
+    private KeyPair m_keyPair = null;
+    private Key m_privateKey = null;
+    private Key m_publicKey = null;
 
-    //temporary array in ram
-    private byte m_hotp[] = null;
+
     //flag for accesing m_hotp
     boolean m_access = false;
-    private short m_apduLogOffset = (short) 0;
+    private   short          m_apduLogOffset = (short) 0;
+    // TEMPORARRY ARRAY IN RAM
+    private   byte        m_ramArray[] = null;
     // PERSISTENT ARRAY IN EEPROM
-    private byte m_dataArray[] = null;
+    private   byte       m_dataArray[] = null;
 
     /**
      * SimpleApplet default constructor Only this class's install method should
@@ -92,27 +91,16 @@ public class SimpleApplet extends javacard.framework.Applet {
 //            Util.arrayFillNonAtomic(m_dataArray, (short) 0, ARRAY_LENGTH, (byte) 0);
             Util.arrayCopyNonAtomic(buffer, offset, m_dataArray, (short) 0, length);
 
-            // CREATE AES KEY OBJECT
-            // Applet will accept new secret key K later used to produce OTP (infrequent)
-            m_aesKey = (AESKey) KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_128, false);
-
-            // TEMPORARY BUFFER USED FOR FAST OPERATION WITH MEMORY LOCATED IN RAM
-            //m_hotp = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_DESELECT);
-
-            // STORE KEY FROM INSTALLATION
-            // SET KEY VALUE
-            m_aesKey.setKey(m_dataArray, (short) 0);
-
-            m_pin = new OwnerPIN((byte) 5, (byte) 4); // 5 tries, 4 digits in pin
-
-            byte default_user_pin[] = {
-                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
-            };
-
-            m_pin.update(default_user_pin, (byte) 0, (byte) 4); // set initial random pin
-
-            // INIT HASH ENGINE
-            m_hash = MessageDigest.getInstance(MessageDigest.ALG_SHA, false);
+            m_keyPair = new KeyPair(KeyPair.ALG_RSA_CRT, KeyBuilder.LENGTH_RSA_2048);
+            m_keyPair.genKeyPair();
+            m_publicKey = m_keyPair.getPublic();
+            m_privateKey = m_keyPair.getPrivate();
+            
+            m_decryptCipher = Cipher.getInstance(Cipher.ALG_RSA_ISO14888, false);
+            m_decryptCipher.init(m_privateKey, Cipher.MODE_DECRYPT);
+            
+            m_pin = new OwnerPIN((byte) 5, (byte) 4);
+            m_pin.update(m_dataArray, (byte) 0, (byte) 4); // set initial random pin
 
             // update flag
             isOP2 = true;
@@ -179,24 +167,20 @@ public class SimpleApplet extends javacard.framework.Applet {
         }
 
         try {
-
             // APDU instruction parser
             if (apduBuffer[ISO7816.OFFSET_CLA] == CLA_SIMPLEAPPLET) {
                 switch (apduBuffer[ISO7816.OFFSET_INS]) {
-                    case INS_SETKEY:
-                        SetKey(apdu);
-                        break;
                     case INS_VERIFYPIN:
                         VerifyPIN(apdu);
                         break;
                     case INS_SETPIN:
                         SetPIN(apdu);
                         break;
-                    case INS_GENERATE_HOTP:
-                        GenHOTP(apdu);
+                    case INS_SENDPUBLICKEY:
+                        SendPublicKey(apdu);
                         break;
-                    case INS_READ_HOTP:
-                        ReadHOTP(apdu);
+                    case INS_DECRYPT:
+                        Decrypt(apdu);
                         break;
                     default:
                         // The INS code is not supported by the dispatcher
@@ -236,20 +220,6 @@ public class SimpleApplet extends javacard.framework.Applet {
 
     }
 
-    // SET ENCRYPTION & DECRYPTION KEY
-    void SetKey(APDU apdu) {
-        byte[] apdubuf = apdu.getBuffer();
-        short dataLen = apdu.setIncomingAndReceive();
-
-        // CHECK EXPECTED LENGTH
-        if ((short) (dataLen * 8) != KeyBuilder.LENGTH_AES_128) {
-            ISOException.throwIt(SW_KEY_LENGTH_BAD);
-        }
-
-        // SET KEY VALUE
-        m_aesKey.setKey(apdubuf, ISO7816.OFFSET_CDATA);
-    }
-
     // VERIFY PIN
     void VerifyPIN(APDU apdu) {
         byte[] apdubuf = apdu.getBuffer();
@@ -274,100 +244,43 @@ public class SimpleApplet extends javacard.framework.Applet {
         // SET NEW PIN
         m_pin.update(apdubuf, ISO7816.OFFSET_CDATA, (byte) dataLen);
     }
+    
+        // DECRYPT INCOMING BUFFER
+    void Decrypt(APDU apdu) {
+      byte[]    apdubuf = apdu.getBuffer();
+      short     dataLen = apdu.setIncomingAndReceive();
+      short     i;
 
-    void GenHOTP(APDU apdu) throws IOException {
+      // CHECK EXPECTED LENGTH (MULTIPLY OF 64 bites)
+      if ((dataLen % 16) != 0) ISOException.throwIt(SW_CIPHER_DATA_LENGTH_BAD);
 
-        //Applet receives input challenge C from PC and produce corresponding 
-        //apdu buff is our challenge/counter 'C'
-        byte[] apdubuf = apdu.getBuffer();
-        short dataLen = apdu.setIncomingAndReceive();
+      // DECRYPT INCOMING BUFFER
+      m_decryptCipher.doFinal(apdubuf, ISO7816.OFFSET_CDATA, dataLen, m_ramArray, (short) 0);
 
-        //Computing HMAC(K,C) = SHA1(K ⊕ 0x5c5c… ∥ SHA1(K ⊕ 0x3636… ∥ C))
-        //Block length of AES is 16-bytes (128bits) so length of block is 16
-        byte[] opad = new byte[16];
-        byte[] ipad = new byte[16];
-        Util.arrayFillNonAtomic(opad, (short) 0, (short) 16, (byte) 0x5c);
-        Util.arrayFillNonAtomic(ipad, (short) 0, (short) 16, (byte) 0x36);
+      // COPY DECRYPTED DATA INTO OUTGOING BUFFER
+      Util.arrayCopyNonAtomic(m_ramArray, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, dataLen);
 
-        //Load key to variable
-        byte[] key = new byte[16];
-        m_aesKey.getKey(key, (short) 0);
-
-        //Computing first part of concatinetion (K ⊕ 0x5c5c…)
-        byte[] first = new byte[16];
-
-        //K ⊕ 0x5c5c…
-        for (short i = 0; i < opad.length; i++) {
-            first[i] = (byte) (key[i] ^ opad[i]);
-        }
-
-        //Computing second part of concatinetion SHA1(K ⊕ 0x3636… ∥ C)
-        byte[] second = new byte[(short) (16 + dataLen)];
-
-        //K ⊕ 0x3636…
-        for (short i = 0; i < ipad.length; i++) {
-            second[i] = (byte) (key[i] ^ ipad[i]);
-        }
-
-        //K ⊕ 0x3636… ∥ C
-        Util.arrayCopyNonAtomic(apdubuf, ISO7816.OFFSET_CDATA, second,
-                (short) ipad.length, dataLen);
-
-        //SHA1(K ⊕ 0x3636… ∥ C)
-        if (m_hash != null) {
-            m_hash.doFinal(second, (short) 0, (short) second.length, second, (short) 0);
-        } else {
-            ISOException.throwIt(SW_OBJECT_NOT_AVAILABLE);
-        }
-
-        //Computing final HMAC(K,C) = SHA1(K ⊕ 0x5c5c… ∥ SHA1(K ⊕ 0x3636… ∥ C))
-        byte[] hmac = new byte[20];
-        byte[] tmp = new byte[(short) (first.length + second.length)];
-
-        //(K ⊕ 0x5c5c…) ∥ SHA1(K ⊕ 0x3636… ∥ C)
-        Util.arrayCopyNonAtomic(first, (short) 0, tmp,
-                (short) 0, (short) first.length);
-        Util.arrayCopyNonAtomic(second, (short) 0, tmp,
-                (short) first.length, (short) second.length);
-
-        //SHA1(K ⊕ 0x5c5c… ∥ SHA1(K ⊕ 0x3636… ∥ C))
-        if (m_hash != null) {
-            m_hash.doFinal(tmp, (short) 0, (short) tmp.length, hmac, (short) 0);
-        } else {
-            ISOException.throwIt(SW_OBJECT_NOT_AVAILABLE);
-        }
-        //HMAC(K,C) is done
-
-        //Computing HOTP(K,C) = Truncate(HMAC(K,C)) & 0x7FFFFFFF
-        //Following [RFC4226 5.3] for truncate function
-        short offset = (short) (hmac[19] & 0xf);
-        m_hotp[0] = (byte) (hmac[offset] & 0x7f);
-        m_hotp[1] = (byte) (hmac[(short) (offset + 1)] & 0xff);
-        m_hotp[2] = (byte) (hmac[(short) (offset + 2)] & 0xff);
-        m_hotp[3] = (byte) (hmac[(short) (offset + 3)] & 0xff);
-        //HOTP(K,C) is done
-/*
-
-        //Compute HOTP-value = combine pair of bytes together to get 2 byte long value
-        //Copy HOTP into outgoing buffer
-        //Util.arrayCopyNonAtomic(m_hotp, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, (short) 4);
-        //Send outgoing buffer
-        //apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, (short) 4);
-        apdu.setOutgoingAndSend((short) 0, (short) 0);
-         */
-
+      
+      // SEND OUTGOING BUFFER
+      apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, dataLen);
+    }
+    
+    void SendPublicKey(APDU apdu) {
+       byte[]    apdubuf = apdu.getBuffer();
+/* do MAGIC */
+//http://stackoverflow.com/questions/32996318/convert-object-to-byte-in-java-card
+//set size, length, exponent and modulus to byte array and send it, 
+//then store in application qt-sesam in some struct
+       
+       // COPY ENCRYPTED DATA INTO OUTGOING BUFFER
+       //Util.arrayCopyNonAtomic(m_publicKey, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, m_apduLogOffset);
+       //short tempLength = m_apduLogOffset;
+       //m_apduLogOffset = 0;
+    // SEND OUTGOING BUFFER
+    //apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, tempLength);     
+    
     }
 
-    void ReadHOTP(APDU apdu) throws IOException {
-        byte[] apdubuf = apdu.getBuffer();
-        if (m_access) {
-            m_access = false;
-            Util.arrayCopyNonAtomic(m_hotp, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, (short) 4);
-            apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, (short) 4);
-        } else {
-            ISOException.throwIt(SW_CANT_ACCES_HOTP);
-        }
-
-    }
+   
 
 }
