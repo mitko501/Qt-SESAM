@@ -26,6 +26,8 @@ QT += core gui widgets concurrent network xml
 
 TRANSLATIONS = $$files(translations/QtSESAM_*.ts)
 
+LIBS += -L/usr/include/PCSC -lpcsclite
+
 VERSION_PE_HEADER = 2.0
 
 win32-g++ {
@@ -62,7 +64,8 @@ SOURCES += main.cpp \
     hackhelper.cpp \
     expandablegroupbox.cpp \
     logger.cpp \
-    passwordsafereader.cpp
+    passwordsafereader.cpp \
+    scutils.cpp
 
 HEADERS  += \
     mainwindow.h \
@@ -80,7 +83,8 @@ HEADERS  += \
     keepass2xmlreader.h \
     expandablegroupbox.h \
     logger.h \
-    passwordsafereader.h
+    passwordsafereader.h \
+    scutils.h
 
 FORMS += mainwindow.ui \
     optionsdialog.ui \

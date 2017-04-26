@@ -24,8 +24,16 @@
 #include <QTranslator>
 #include <QLocale>
 
+#include <iostream>
+#include "scutils.h"
+
 int main(int argc, char *argv[])
 {
+//    SCManager sc;
+
+//    sc.connectToCardAndSetQtSESAMApplet();
+
+
   Q_INIT_RESOURCE(QtSESAM);
   checkPortable();
   QSettings settings(QSettings::IniFormat, QSettings::UserScope, AppCompanyName, AppName);
