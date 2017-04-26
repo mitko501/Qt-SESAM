@@ -19,10 +19,7 @@ public class SimpleApplet extends javacard.framework.Applet {
     final static byte INS_GETAPDUBUFF = (byte) 0x59;
     final static byte INS_SENDPUBLICKEY = (byte) 0x60;
 
-
-   
     final static short ARRAY_LENGTH = (short) 0xff;
-    final static byte AES_BLOCK_LENGTH = (short) 0x16;
 
     final static short SW_BAD_TEST_DATA_LEN = (short) 0x6680;
     final static short SW_KEY_LENGTH_BAD = (short) 0x6715;
@@ -49,14 +46,12 @@ public class SimpleApplet extends javacard.framework.Applet {
     private Key m_privateKey = null;
     private Key m_publicKey = null;
 
-
-    //flag for accesing m_hotp
     boolean m_access = false;
-    private   short          m_apduLogOffset = (short) 0;
+    private short m_apduLogOffset = (short) 0;
     // TEMPORARRY ARRAY IN RAM
-    private   byte        m_ramArray[] = null;
+    private byte m_ramArray[] = null;
     // PERSISTENT ARRAY IN EEPROM
-    private   byte       m_dataArray[] = null;
+    private byte m_dataArray[] = null;
 
     /**
      * SimpleApplet default constructor Only this class's install method should
@@ -88,17 +83,16 @@ public class SimpleApplet extends javacard.framework.Applet {
             dataOffset++;
 
             m_dataArray = new byte[ARRAY_LENGTH];
-//            Util.arrayFillNonAtomic(m_dataArray, (short) 0, ARRAY_LENGTH, (byte) 0);
-            Util.arrayCopyNonAtomic(buffer, offset, m_dataArray, (short) 0, length);
+            Util.arrayFillNonAtomic(m_dataArray, (short) 0, ARRAY_LENGTH, (byte) 0);
 
             m_keyPair = new KeyPair(KeyPair.ALG_RSA_CRT, KeyBuilder.LENGTH_RSA_2048);
             m_keyPair.genKeyPair();
             m_publicKey = m_keyPair.getPublic();
             m_privateKey = m_keyPair.getPrivate();
-            
+
             m_decryptCipher = Cipher.getInstance(Cipher.ALG_RSA_ISO14888, false);
             m_decryptCipher.init(m_privateKey, Cipher.MODE_DECRYPT);
-            
+
             m_pin = new OwnerPIN((byte) 5, (byte) 4);
             m_pin.update(m_dataArray, (byte) 0, (byte) 4); // set initial random pin
 
@@ -240,47 +234,47 @@ public class SimpleApplet extends javacard.framework.Applet {
     void SetPIN(APDU apdu) {
         byte[] apdubuf = apdu.getBuffer();
         short dataLen = apdu.setIncomingAndReceive();
+        //set pin only after verifying an old one
 
+        /* implementation of verifying pin and then setting a new one from apdu */
         // SET NEW PIN
         m_pin.update(apdubuf, ISO7816.OFFSET_CDATA, (byte) dataLen);
     }
-    
-        // DECRYPT INCOMING BUFFER
+
+    // DECRYPT INCOMING BUFFER
     void Decrypt(APDU apdu) {
-      byte[]    apdubuf = apdu.getBuffer();
-      short     dataLen = apdu.setIncomingAndReceive();
-      short     i;
+        byte[] apdubuf = apdu.getBuffer();
+        short dataLen = apdu.setIncomingAndReceive();
+        short i;
 
-      // CHECK EXPECTED LENGTH (MULTIPLY OF 64 bites)
-      if ((dataLen % 16) != 0) ISOException.throwIt(SW_CIPHER_DATA_LENGTH_BAD);
+        // CHECK EXPECTED LENGTH (MULTIPLY OF 64 bites)
+        if ((dataLen % 16) != 0) {
+            ISOException.throwIt(SW_CIPHER_DATA_LENGTH_BAD);
+        }
 
-      // DECRYPT INCOMING BUFFER
-      m_decryptCipher.doFinal(apdubuf, ISO7816.OFFSET_CDATA, dataLen, m_ramArray, (short) 0);
+        // DECRYPT INCOMING BUFFER
+        m_decryptCipher.doFinal(apdubuf, ISO7816.OFFSET_CDATA, dataLen, m_ramArray, (short) 0);
 
-      // COPY DECRYPTED DATA INTO OUTGOING BUFFER
-      Util.arrayCopyNonAtomic(m_ramArray, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, dataLen);
+        // COPY DECRYPTED DATA INTO OUTGOING BUFFER
+        Util.arrayCopyNonAtomic(m_ramArray, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, dataLen);
 
-      
-      // SEND OUTGOING BUFFER
-      apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, dataLen);
+        // SEND OUTGOING BUFFER
+        apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, dataLen);
     }
-    
+
     void SendPublicKey(APDU apdu) {
-       byte[]    apdubuf = apdu.getBuffer();
-/* do MAGIC */
-//http://stackoverflow.com/questions/32996318/convert-object-to-byte-in-java-card
-//set size, length, exponent and modulus to byte array and send it, 
-//then store in application qt-sesam in some struct
-       
-       // COPY ENCRYPTED DATA INTO OUTGOING BUFFER
-       //Util.arrayCopyNonAtomic(m_publicKey, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, m_apduLogOffset);
-       //short tempLength = m_apduLogOffset;
-       //m_apduLogOffset = 0;
-    // SEND OUTGOING BUFFER
-    //apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, tempLength);     
-    
-    }
+        byte[] apdubuf = apdu.getBuffer();
+        /* do magic */
+        //http://stackoverflow.com/questions/32996318/convert-object-to-byte-in-java-card
+        //set size, length, exponent and modulus to byte array and send it, 
+        //then store in application qt-sesam in some struct
 
-   
+        // COPY ENCRYPTED DATA INTO OUTGOING BUFFER
+        //Util.arrayCopyNonAtomic(m_publicKey, (short) 0, apdubuf, ISO7816.OFFSET_CDATA, m_apduLogOffset);
+        //short tempLength = m_apduLogOffset;
+        //m_apduLogOffset = 0;
+        // SEND OUTGOING BUFFER
+        //apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, tempLength);     
+    }
 
 }
