@@ -17,32 +17,32 @@ public class SimpleAPDU {
     static CardMngr cardManager = new CardMngr();
 
     private static byte DEFAULT_USER_PIN[] = {
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
     };
     private static byte NEW_USER_PIN[] = {
-        (byte) 0x31, (byte) 0x31, (byte) 0x31, (byte) 0x31
+            (byte) 0x31, (byte) 0x31, (byte) 0x31, (byte) 0x31
     };
     private static byte APPLET_AID[] = {
-        (byte) 0x73, (byte) 0x69, (byte) 0x6D, (byte) 0x70,
-        (byte) 0x6C, (byte) 0x65, (byte) 0x61, (byte) 0x70,
-        (byte) 0x70, (byte) 0x6C, (byte) 0x65, (byte) 0x74
+            (byte) 0x73, (byte) 0x69, (byte) 0x6D, (byte) 0x70,
+            (byte) 0x6C, (byte) 0x65, (byte) 0x61, (byte) 0x70,
+            (byte) 0x70, (byte) 0x6C, (byte) 0x65, (byte) 0x74
     };
     private static byte SELECT_SIMPLEAPPLET[] = {
-        (byte) 0x00, (byte) 0xa4, (byte) 0x04, (byte) 0x00,
-        (byte) 0x0b, (byte) 0x73, (byte) 0x69, (byte) 0x6D,
-        (byte) 0x70, (byte) 0x6C, (byte) 0x65, (byte) 0x61,
-        (byte) 0x70, (byte) 0x70, (byte) 0x6C, (byte) 0x65,
-        (byte) 0x74
+            (byte) 0x00, (byte) 0xa4, (byte) 0x04, (byte) 0x00,
+            (byte) 0x0b, (byte) 0x73, (byte) 0x69, (byte) 0x6D,
+            (byte) 0x70, (byte) 0x6C, (byte) 0x65, (byte) 0x61,
+            (byte) 0x70, (byte) 0x70, (byte) 0x6C, (byte) 0x65,
+            (byte) 0x74
     };
 
     public static void main(String[] args) {
         try {
             // Prepare simulated card - key
             byte[] installData = {
-                (byte) 0x00, (byte) 0x11, (byte) 0x22, (byte) 0x33,
-                (byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77,
-                (byte) 0x88, (byte) 0x99, (byte) 0xaa, (byte) 0xbb,
-                (byte) 0xcc, (byte) 0xdd, (byte) 0xee, (byte) 0xff
+                    (byte) 0x00, (byte) 0x11, (byte) 0x22, (byte) 0x33,
+                    (byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77,
+                    (byte) 0x88, (byte) 0x99, (byte) 0xaa, (byte) 0xbb,
+                    (byte) 0xcc, (byte) 0xdd, (byte) 0xee, (byte) 0xff
             };
 
             cardManager.prepareLocalSimulatorApplet(APPLET_AID, installData,
@@ -85,7 +85,7 @@ public class SimpleAPDU {
             //}
             //System.out.println(time / 100);
 
-            byte apdu1[] = new byte[CardMngr.HEADER_LENGTH + 
+            byte apdu1[] = new byte[CardMngr.HEADER_LENGTH +
                     DEFAULT_USER_PIN.length];
             Util.arrayCopyNonAtomic(DEFAULT_USER_PIN, (short) 0, apdu,
                     CardMngr.OFFSET_DATA, (short) DEFAULT_USER_PIN.length);
