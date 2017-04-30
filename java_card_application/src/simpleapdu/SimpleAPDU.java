@@ -1,6 +1,6 @@
 package simpleapdu;
 
-import applets.SimpleApplet;
+import applets.QTSesamApplet;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +46,7 @@ public class SimpleAPDU {
             };
 
             cardManager.prepareLocalSimulatorApplet(APPLET_AID, installData,
-                    SimpleApplet.class);
+                    QTSesamApplet.class);
 
             byte[] challenge = new byte[20];
             for (int i = 0; i < challenge.length; i++) {
