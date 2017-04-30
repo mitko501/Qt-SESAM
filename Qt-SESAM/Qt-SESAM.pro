@@ -65,7 +65,10 @@ SOURCES += main.cpp \
     expandablegroupbox.cpp \
     logger.cpp \
     passwordsafereader.cpp \
-    scutils.cpp
+    java_card/scutils.cpp \
+    java_card/apdu.cpp \
+    java_card/apduresponse.cpp \
+    java_card/securechannel.cpp
 
 HEADERS  += \
     mainwindow.h \
@@ -84,7 +87,10 @@ HEADERS  += \
     expandablegroupbox.h \
     logger.h \
     passwordsafereader.h \
-    scutils.h
+    java_card/scutils.h \
+    java_card/apdu.h \
+    java_card/apduresponse.h \
+    java_card/securechannel.h
 
 FORMS += mainwindow.ui \
     optionsdialog.ui \

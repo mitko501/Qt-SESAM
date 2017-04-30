@@ -23,9 +23,40 @@
 #include <QSettings>
 #include <QTranslator>
 #include <QLocale>
+#include "java_card/scutils.h"
+#include "java_card/securechannel.h"
 
-int main(int argc, char *argv[])
-{
+#include <iostream>
+
+int main(int argc, char *argv[]){
+//
+// EXAMPLE OF SECURE CONNECTION ESTABLISHING
+// code should return code 9000 and response: tecret
+
+//  SCUtils sc;
+//  sc.connectToCardAndSetQtSESAMApplet();
+//  //sc.readCardPublicKey();
+
+//  SecureChannel channel(&sc);
+
+//  APDU newAP(0x53);
+
+//  byte messageNoPad[6] = {(byte) 0x73, (byte) 0x65, (byte) 0x63, (byte) 0x72, (byte) 0x65, (byte) 0x74};
+//  newAP.add_data(6, messageNoPad);
+
+//  APDUResponse resp = channel.sendToCardSecurely(&newAP);
+
+//  std::cout << "Response ended with status code: " << std::hex << resp.getStatusCode() << " and response: ";
+//  for (int i = 0; i < resp.size(); i++) {
+//    std::cout << resp.response()[i];
+//  }
+//  std::cout << std::endl;
+
+//
+// END OF EXAMPLE OF SECURE CONNECTION ESTABLISHING
+//
+
+
   Q_INIT_RESOURCE(QtSESAM);
   checkPortable();
   QSettings settings(QSettings::IniFormat, QSettings::UserScope, AppCompanyName, AppName);
