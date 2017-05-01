@@ -3638,7 +3638,7 @@ void MainWindow::getMasterPasswordAndAuthenticate() {
   }
 
   std::string adminPasswordStd;
-  for(int i = 0; i < adminPasswordResponse.size(); i++) {
+  for(unsigned int i = 0; i < adminPasswordResponse.size(); i++) {
       adminPasswordStd.push_back(adminPasswordResponse.response()[i]);
   }
 
