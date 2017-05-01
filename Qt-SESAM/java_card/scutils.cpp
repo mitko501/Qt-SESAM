@@ -1,5 +1,6 @@
 #include "scutils.h"
 
+
 SCUtils::SCUtils() {
   LONG rval;
   rval = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &_context);
@@ -23,7 +24,7 @@ SCUtils::SCUtils() {
   }
 
   pReader = pmszReaders;
-  while ( '\0' != *pReader ) {
+  while ('\0' != *pReader) {
     std::string reader_name(pReader);
     _readers.push_back(reader_name);
     
@@ -31,8 +32,8 @@ SCUtils::SCUtils() {
   }
 
   // Free the memory pmszReaders.
-  rval = SCardFreeMemory( _context, pmszReaders);
-  if ( SCARD_S_SUCCESS != rval )
+  rval = SCardFreeMemory(_context, pmszReaders);
+  if (SCARD_S_SUCCESS != rval)
     printf("Failed to free memory\n");
 }
 
@@ -60,7 +61,7 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
   // Loop over all readers and find card connected
   for (auto reader : _readers) {
     int tries = NUMBER_OF_TRIES;
-    while (tries && (rval = SCardConnect(_context, (LPCTSTR)_readers.at(0).c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
+    while (tries && (rval = SCardConnect(_context, (LPCTSTR) reader.c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
         tries--;
     }
 
