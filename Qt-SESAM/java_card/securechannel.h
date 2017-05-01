@@ -22,8 +22,8 @@ class SecureChannel
 
   CryptoPP::AES::Decryption* _aesDecryption = NULL;
   CryptoPP::AES::Encryption* _aesEncryption = NULL;
-  CryptoPP::CBC_Mode_ExternalCipher::Decryption _decryptor;
-  CryptoPP::CBC_Mode_ExternalCipher::Encryption _encryptor;
+  CryptoPP::CBC_Mode_ExternalCipher::Decryption* _decryptor;
+  CryptoPP::CBC_Mode_ExternalCipher::Encryption* _encryptor;
 
   SCUtils* _smartCard;
 
@@ -42,6 +42,9 @@ public:
   ~SecureChannel() {
     delete _aesDecryption;
     delete _aesEncryption;
+
+    delete _encryptor;
+    delete _decryptor;
   }
 };
 

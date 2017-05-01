@@ -3,6 +3,9 @@
 
 #include <QDialog>
 #include <QtWidgets>
+#include "global.h"
+#include "util.h"
+#include "ui_changepindialog.h"
 
 namespace Ui {
   class ChangePinDialog;
@@ -14,13 +17,26 @@ class ChangePinDialog : public QDialog
 
 public:
   explicit ChangePinDialog(QWidget *parent = 0);
+
+  QString get_newPIN() {
+    return ui->newPIN->text();
+  }
+
+  QString get_oldPIN() {
+    return ui->oldPIN->text();
+  }
+
   ~ChangePinDialog();
 
 private:
-  Ui::ChangePinDialog *ui;
+  Ui::ChangePinDialog* ui;
   bool newPIN = false;
   bool oldPIN = false;
   bool repeatPIN = false;
+
+signals:
+  void accepted(void);
+  void rejected(void);
 
 private slots:
   void checkNewPIN(QString pin);

@@ -81,6 +81,8 @@ private:
     LastPeerName
   } SyncPeer;
 
+  bool changePin = false;
+
 private slots:
   void onLogin(void);
   void onMessageFromTcpClient(QJsonDocument);
@@ -99,6 +101,7 @@ private slots:
   void onServerCertificatesUpdated(const QList<QSslCertificate> &certs);
   void showOptionsDialog(void);
   void showPinDialog(void);
+  void showChangePinDialog(void);
   void rejectedPinDialog(void);
   void acceptPinDialog(void);
   void onPasswordGenerated(void);
@@ -153,6 +156,7 @@ private slots:
   void removeOutdatedBackupFiles(void);
   void connectJC();
   void removeJC();
+  void getMasterPasswordAndAuthenticate();
 #if HACKING_MODE_ENABLED
   void hackLegacyPassword(void);
 #endif
@@ -167,6 +171,7 @@ private slots:
   void onSelectLanguage(QAction *);
   void onAttachFile(void);
   void javaCardAuthentication(void);
+  void authenticationAfterPinChange();
 
 signals:
   void passwordGenerated(void);

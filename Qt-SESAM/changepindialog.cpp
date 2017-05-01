@@ -1,14 +1,22 @@
 #include "changepindialog.h"
-#include "ui_changepindialog.h"
 
 ChangePinDialog::ChangePinDialog(QWidget *parent) :
   QDialog(parent),
   ui(new Ui::ChangePinDialog)
 {
   ui->setupUi(this);
+  setWindowIcon(QIcon(":/images/ctSESAM.ico"));
+  setWindowTitle(QString("%1 %2").arg(AppName).arg(isPortable() ? " - PORTABLE" : ""));
+
   QObject::connect(ui->newPIN, SIGNAL(textEdited(QString)), SLOT(checkNewPIN(QString)));
   QObject::connect(ui->oldPIN, SIGNAL(textEdited(QString)), SLOT(checkOldPIN(QString)));
   QObject::connect(ui->newRepeat, SIGNAL(textEdited(QString)), SLOT(checkRepeatPIN(QString)));
+  QObject::connect(ui->buttonBox, SIGNAL(rejected()), SIGNAL(rejected()));
+  QObject::connect(ui->buttonBox, SIGNAL(accepted()), SIGNAL(accepted()));
+
+  ui->oldPIN->setEchoMode(QLineEdit::Password);
+  ui->newPIN->setEchoMode(QLineEdit::Password);
+  ui->newRepeat->setEchoMode(QLineEdit::Password);
 }
 
 void ChangePinDialog::checkOldPIN(QString pin) {

@@ -60,7 +60,7 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
   // Loop over all readers and find card connected
   for (auto reader : _readers) {
     int tries = NUMBER_OF_TRIES;
-    while (tries && (rval = SCardConnect(_context, (LPCTSTR)_readers.at(0).c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
+    while (tries && (rval = SCardConnect(_context, (LPCTSTR)reader.c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
         tries--;
     }
 
@@ -125,6 +125,58 @@ void SCUtils::sendAPDUEncryptedByCardPKI(APDU* apdu, APDUResponse* response) {
   encryptedAPDU.add_data(160, ciphert);
 
   sendToCard(&encryptedAPDU, response);
+}
+
+std::string SCUtils::getCardFingerprint() {
+  CryptoPP::SHA256 sha256;
+
+  byte shaOutput[32];
+  byte publicKey[_cardPublicKey.ByteCount()];
+  _cardPublicKey.Encode(publicKey, _cardPublicKey.ByteCount());
+
+  sha256.CalculateDigest(shaOutput, publicKey, _cardPublicKey.ByteCount());
+
+  std::string output;
+  // VERY BAD EXAMPLE OF FINGERPRINT ALGORITHM
+  for(int i = 0; i < 10; i+=2) {
+    output.push_back((shaOutput[i] % 10) + 48);
+  }
+
+  return output;
+}
+
+std::string SCUtils::getCardPublicKey() {
+  byte pk[_cardPublicKey.ByteCount()];
+
+  _cardPublicKey.Encode(pk, _cardPublicKey.ByteCount());
+
+  std::string result;
+  for (int i = 0; i < _cardPublicKey.ByteCount(); i++) {
+      result.push_back(pk[i]);
+  }
+
+  return result;
+}
+
+std::string SCUtils::getCardModulus() {
+  byte mod[_cardModulus.ByteCount()];
+
+  _cardModulus.Encode(mod, _cardModulus.ByteCount());
+
+  std::string result;
+  for (int i = 0; i < _cardModulus.ByteCount(); i++) {
+      result.push_back(mod[i]);
+  }
+
+  return result;
+}
+
+void SCUtils::setCardPublicKey(std::string pk) {
+  _cardPublicKey.Decode((byte*)pk.c_str(), pk.size());
+}
+
+void SCUtils::setCardModulus(std::string mod) {
+  _cardModulus.Decode((byte*)mod.c_str(), mod.size());
 }
 
 SCUtils::~SCUtils() {

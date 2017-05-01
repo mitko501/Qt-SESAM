@@ -50,7 +50,7 @@ SecureChannel::SecureChannel(SCUtils* sc) : _smartCard(sc) {
   publicKeyAPDU.add_data(_publicPart);
 
   APDUResponse sessionKeyAgreed;
-  sc->readCardPublicKey();
+
   sc->sendAPDUEncryptedByCardPKI(&publicKeyAPDU, &sessionKeyAgreed);
 
   if (!sessionKeyAgreed.isSuccessful()) {
@@ -71,10 +71,10 @@ SecureChannel::SecureChannel(SCUtils* sc) : _smartCard(sc) {
   _sessionKey = CryptoPP::SecByteBlock(shaOutput, 16);
 
   _aesDecryption = new CryptoPP::AES::Decryption(_sessionKey.data(), 16);
-  _decryptor = CryptoPP::CBC_Mode_ExternalCipher::Decryption(*_aesDecryption, _iv);
+  _decryptor = new CryptoPP::CBC_Mode_ExternalCipher::Decryption(*_aesDecryption, _iv);
 
   _aesEncryption = new CryptoPP::AES::Encryption(_sessionKey.data(), 16);
-  _encryptor = CryptoPP::CBC_Mode_ExternalCipher::Encryption(*_aesEncryption, _iv);
+  _encryptor = new CryptoPP::CBC_Mode_ExternalCipher::Encryption(*_aesEncryption, _iv);
 }
 
 APDUResponse SecureChannel::sendToCardSecurely(APDU* apdu) {
@@ -123,8 +123,8 @@ void SecureChannel::encrypt(byte* src, int srcSize, byte** dest, int* destSize) 
     (*dest)[srcSize + i] = paddingSize;
   }
 
-  _encryptor.ProcessData((*dest), (*dest), srcSize + paddingSize);
-  _encryptor.Resynchronize(_iv);
+  _encryptor->ProcessData((*dest), (*dest), srcSize + paddingSize);
+  _encryptor->Resynchronize(_iv);
 
   (*destSize) = srcSize + paddingSize;
 }
@@ -161,8 +161,8 @@ void SecureChannel::decrypt(byte* src, int srcSize, byte** dest, int* destSize) 
     exit(0);
   }
 
-  _decryptor.ProcessData((*dest), src, srcSize);
-  _decryptor.Resynchronize(_iv);
+  _decryptor->ProcessData((*dest), src, srcSize);
+  _decryptor->Resynchronize(_iv);
 
   (*destSize) = srcSize - (*dest)[srcSize - 1]; // Size without padding
 }

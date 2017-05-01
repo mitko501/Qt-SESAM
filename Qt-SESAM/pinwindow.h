@@ -28,6 +28,14 @@ public:
     return ui->pin->text();
   }
 
+  void setConnectingCard(bool val) {
+    connectingCard = val;
+  }
+
+  bool getConnectingCard() {
+    return connectingCard;
+  }
+
   ~PinWindow();
 
 signals:
@@ -35,9 +43,10 @@ signals:
   void rejected(void);
 
 private slots:
-void checkSize(QString pin);
+  void checkSize(QString pin);
 
 private:
+  bool connectingCard;
   Ui::PinWindowDialog* ui;
 };
 

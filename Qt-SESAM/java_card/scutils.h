@@ -39,6 +39,14 @@ public:
   void readCardPublicKey();
   void sendAPDUEncryptedByCardPKI(APDU* apdu, APDUResponse* response);
 
+  std::string getCardPublicKey();
+  std::string getCardModulus();
+
+  void  setCardPublicKey(std::string pk);
+  void  setCardModulus(std::string mod);
+
+  std::string getCardFingerprint();
+
   ~SCUtils();
 };
 

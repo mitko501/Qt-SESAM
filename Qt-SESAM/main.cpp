@@ -56,7 +56,6 @@ int main(int argc, char *argv[]){
 // END OF EXAMPLE OF SECURE CONNECTION ESTABLISHING
 //
 
-
   Q_INIT_RESOURCE(QtSESAM);
   checkPortable();
   QSettings settings(QSettings::IniFormat, QSettings::UserScope, AppCompanyName, AppName);
