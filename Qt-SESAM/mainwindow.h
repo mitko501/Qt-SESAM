@@ -98,6 +98,9 @@ private slots:
   void copyLegacyPasswordToClipboard(void);
   void onServerCertificatesUpdated(const QList<QSslCertificate> &certs);
   void showOptionsDialog(void);
+  void showPinDialog(void);
+  void rejectedPinDialog(void);
+  void acceptPinDialog(void);
   void onPasswordGenerated(void);
   void onPasswordGenerationAborted(void);
   void onPasswordGenerationStarted(void);
@@ -163,6 +166,7 @@ private slots:
   void onBackupFilesRemoved(int);
   void onSelectLanguage(QAction *);
   void onAttachFile(void);
+  void javaCardAuthentication(void);
 
 signals:
   void passwordGenerated(void);
@@ -240,6 +244,7 @@ private: // methods
   void appendAttachmentToTable(const QString &filename, const QByteArray &contents);
   void executeAttachmentContextMenu(QEvent *event);
   void dragEnterAttachmentWidget(QEvent *event);
+  void authenticate(QString masterPassword, bool repeatedPassword);
 };
 
 #endif // __MAINWINDOW_H_

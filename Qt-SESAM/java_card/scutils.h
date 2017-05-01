@@ -24,7 +24,7 @@ private:
   CryptoPP::Integer _cardModulus;
 
   const byte AID[12] = {0x73, 0x69, 0x6d, 0x70, 0x6c, 0x65, 0x61, 0x70, 0x70, 0x6c, 0x65, 0x74};
-  const APDU SELECT_APPLET_APDU = APDU(0x00, 0xa4, 0x04, 0x00, 0x0c, AID);
+  APDU* SELECT_APPLET_APDU = NULL;
 
   void selectApplet();
 
@@ -38,6 +38,8 @@ public:
   void connectToCardAndSetQtSESAMApplet();
   void readCardPublicKey();
   void sendAPDUEncryptedByCardPKI(APDU* apdu, APDUResponse* response);
+
+  ~SCUtils();
 };
 
 #endif // SCUTILS_H

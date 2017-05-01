@@ -16,11 +16,7 @@ APDU::APDU(byte aclass, byte ins, byte p1, byte p2, byte data_size, const byte* 
 }
 
 void APDU::set_data(byte size, const byte* data) {
-  if (size == 0) {
-    _data[OFFSET_LC] = 0;
-    return;
-  }
-
+  _data[OFFSET_LC] = 0;
   add_data(size, data);
 }
 

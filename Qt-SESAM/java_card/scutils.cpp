@@ -76,8 +76,8 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
   }
 
   APDUResponse response;
-
-  rval = sendToCard(&SELECT_APPLET_APDU, &response);
+  SELECT_APPLET_APDU = new APDU(0x00, 0xa4, 0x04, 0x00, 0x0c, AID);
+  rval = sendToCard(SELECT_APPLET_APDU, &response);
 
   if (rval != SCARD_S_SUCCESS || !response.isSuccessful()) {
     printf("Unable to set Qt-sesam applet\n");
@@ -125,6 +125,12 @@ void SCUtils::sendAPDUEncryptedByCardPKI(APDU* apdu, APDUResponse* response) {
   encryptedAPDU.add_data(160, ciphert);
 
   sendToCard(&encryptedAPDU, response);
+}
+
+SCUtils::~SCUtils() {
+  if (SELECT_APPLET_APDU != NULL) {
+    delete SELECT_APPLET_APDU;
+  }
 }
 
 

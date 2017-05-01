@@ -80,24 +80,28 @@ SecureChannel::SecureChannel(SCUtils* sc) : _smartCard(sc) {
 APDUResponse SecureChannel::sendToCardSecurely(APDU* apdu) {
   APDU encryptedAPDU(apdu->get_class(), apdu->get_ins(), apdu->get_p1(), apdu->get_p2(),
                      0x00, NULL);
-  CryptoPP::SecByteBlock encryptedData;
+  if (apdu->dataSize() != 0) {
+    CryptoPP::SecByteBlock encryptedData;
 
-  encrypt(apdu->getDataPtr(), apdu->dataSize(), &encryptedData);
+    encrypt(apdu->getDataPtr(), apdu->dataSize(), &encryptedData);
 
-  encryptedAPDU.add_data(encryptedData);
+    encryptedAPDU.add_data(encryptedData);
+  }
 
   APDUResponse encryptedResponse;
 
   _smartCard->sendToCard(&encryptedAPDU, &encryptedResponse);
 
-  CryptoPP::SecByteBlock decryptedResponse;
 
-  decrypt(encryptedResponse.response(), encryptedResponse.size(), &decryptedResponse);
+  if (encryptedResponse.size() != 0 && encryptedResponse.isSuccessful()) {
+    CryptoPP::SecByteBlock decryptedResponse;
+    decrypt(encryptedResponse.response(), encryptedResponse.size(), &decryptedResponse);
 
-  strncpy((char*)encryptedResponse.response(), (char*)decryptedResponse.data(), decryptedResponse.size());
-  strncpy((char*) encryptedResponse.response() + decryptedResponse.size(),
-          (char*)encryptedResponse.response() + encryptedResponse.size(), 2); // COPY Status code of encrypted response
-  (*(encryptedResponse.sizePtr())) = decryptedResponse.size() + 2;
+    strncpy((char*)encryptedResponse.response(), (char*)decryptedResponse.data(), decryptedResponse.size());
+    strncpy((char*) encryptedResponse.response() + decryptedResponse.size(),
+            (char*)encryptedResponse.response() + encryptedResponse.size(), 2); // COPY Status code of encrypted response
+    (*(encryptedResponse.sizePtr())) = decryptedResponse.size() + 2;
+  }
 
   return encryptedResponse;
 }

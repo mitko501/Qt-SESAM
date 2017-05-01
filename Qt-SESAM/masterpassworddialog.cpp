@@ -19,6 +19,7 @@
 
 #include <QDebug>
 #include "masterpassworddialog.h"
+#include "pinwindow.h"
 #include "mainwindow.h"
 #include "ui_masterpassworddialog.h"
 #include "passwordchecker.h"
@@ -48,7 +49,7 @@ MasterPasswordDialog::MasterPasswordDialog(QWidget *parent)
   ui->infoLabel->setStyleSheet("font-weight: bold");
   setWindowTitle(QString("%1 %2").arg(AppName).arg(isPortable() ? " - PORTABLE" : ""));
   QObject::connect(ui->okPushButton, SIGNAL(pressed()), SLOT(okClicked()));
-  QObject::connect(ui->javacardButton, SIGNAL(pressed()), SLOT(javaCardClicked()));
+  QObject::connect(ui->javacardButton, SIGNAL(pressed()), SIGNAL(javaCardClicked()));
   QObject::connect(ui->passwordLineEdit, SIGNAL(textEdited(QString)), SLOT(checkPasswords()));
   QObject::connect(ui->repeatPasswordLineEdit, SIGNAL(textEdited(QString)), SLOT(checkPasswords()));
   setRepeatPassword(false);
@@ -148,30 +149,6 @@ void MasterPasswordDialog::okClicked(void)
     accept();
   }
 }
-
-void MasterPasswordDialog::javaCardClicked() {
-
-  ui->putYourCard->setVisible(true);
-
-  authenticatedByCard  = true;
-  // TODO: Generate random number
-
-  // Encrypt with:
-  Q_D(MasterPasswordDialog);
-  d->settings.value("java_card/public_key"); // Be aware of QXXXX type, depends on PKCS#11
-
-  // Comunicate with java_card:
-    // Find reader
-    ui->putYourCard->show();
-    // Find card
-    // Exchange message
-
-  // Check whether sent random number is equal to received
-    // Accept/Reject(It should be possible to continue with login via admin password)
-
-  accept();
-}
-
 
 void MasterPasswordDialog::checkPasswords(void)
 {

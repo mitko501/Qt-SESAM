@@ -20,12 +20,16 @@ public class QTSesamApplet extends javacard.framework.Applet {
 
     final static byte INS_GET_PUBLIC_KEY = (byte) 0x70;
     final static byte INS_GET_PUBLIC_KEY_MODULUS = (byte) 0x71;
+    final static byte INS_GET_MASTER_PASSWORD = (byte) 0x72;
 
     final static short ARRAY_LENGTH = (short) 0x100;
+    final static short MAX_PASSWORD_LENGTH = (short) 0xFF;
     final static short KEY_LENGTH = (short) 0x80;
     final static short SESSION_KEY_SIZE = (short) 0x10;
 
     final static short SW_BAD_PIN = (short) 0x6900;
+    final static short SW_SECURE_CHANNEL_DOES_NOT_EXISTS = (short) 0x6800;
+    private static final short SW_NOT_AUTHENTICATED = 0x6850;
 
     final static short SW_Exception = (short) 0xff01;
     final static short SW_ArrayIndexOutOfBoundsException = (short) 0xff02;
@@ -57,6 +61,8 @@ public class QTSesamApplet extends javacard.framework.Applet {
     private byte m_ramArray2[] = null;
     // PERSISTENT ARRAY IN EEPROM
     boolean m_access = false;
+    boolean m_secureChannelExists = false;
+    short m_masterPasswordLength = 0;
     private byte m_dataArray[] = null;
 
     /**
@@ -88,6 +94,14 @@ public class QTSesamApplet extends javacard.framework.Applet {
         m_dataArray = new byte[ARRAY_LENGTH];
         Util.arrayFillNonAtomic(m_dataArray, (short) 0, ARRAY_LENGTH, (byte) 0);
 
+        m_dataArray[0] = 0x61; // temporary password admin
+        m_dataArray[1] = 0x64;
+        m_dataArray[2] = 0x6D;
+        m_dataArray[3] = 0x69;
+        m_dataArray[4] = 0x6E;
+
+        m_masterPasswordLength = 5;
+
         m_randomGenerator = RandomData.getInstance(RandomData.ALG_SECURE_RANDOM);
 
         m_ramArray = JCSystem.makeTransientByteArray(ARRAY_LENGTH, JCSystem.CLEAR_ON_DESELECT);
@@ -101,8 +115,9 @@ public class QTSesamApplet extends javacard.framework.Applet {
         m_sessionCipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
         m_sessionKey = (AESKey) KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_128, false);
 
+        Util.arrayFillNonAtomic(m_ramArray, (short) 0, (short) 4, (byte) 0x30);
         m_pin = new OwnerPIN((byte) 5, (byte) 4);
-        m_pin.update(m_dataArray, (byte) 0, (byte) 4); // set initial random pin
+        m_pin.update(m_ramArray, (byte) 0, (byte) 4); // set initial random pin
 
         m_keyPair = new KeyPair(KeyPair.ALG_RSA, KeyBuilder.LENGTH_RSA_1280);
         m_keyPair.genKeyPair();
@@ -137,7 +152,8 @@ public class QTSesamApplet extends javacard.framework.Applet {
      */
     public boolean select() {
         // <PUT YOUR SELECTION ACTION HERE>
-
+        m_access = false;
+        m_secureChannelExists = false;
         return true;
     }
 
@@ -178,6 +194,9 @@ public class QTSesamApplet extends javacard.framework.Applet {
                         break;
                     case INS_GET_PUBLIC_KEY_MODULUS:
                         getModulus(apdu);
+                        break;
+                    case INS_GET_MASTER_PASSWORD:
+                        getMasterPassword(apdu);
                         break;
                     case INS_VERIFYPIN:
                         VerifyPIN(apdu);
@@ -232,13 +251,31 @@ public class QTSesamApplet extends javacard.framework.Applet {
         }
     }
 
+    private void getMasterPassword(APDU apdu) {
+        if (!m_secureChannelExists) {
+            ISOException.throwIt(SW_SECURE_CHANNEL_DOES_NOT_EXISTS);
+        }
+
+        if (!m_access) {
+            ISOException.throwIt(SW_NOT_AUTHENTICATED);
+        }
+
+        byte[] apdubuf = apdu.getBuffer();
+        short datalen = apdu.setIncomingAndReceive();
+
+        Util.arrayCopyNonAtomic(m_dataArray, (byte) 0, apdubuf,  ISO7816.OFFSET_CDATA, m_masterPasswordLength);
+
+        short paddingSize = encryptWithSessionKey(apdubuf, ISO7816.OFFSET_CDATA, m_masterPasswordLength);
+        apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, (short) (m_masterPasswordLength + paddingSize));
+    }
+
     private void test(APDU apdu) {
         short decryptedSize = decryptAPDU(apdu);
         byte[] apdubuf = apdu.getBuffer();
 
         apdubuf[ISO7816.OFFSET_CDATA] += 1; // GET ENCRYPTED SECRET AND RETURN TECRET
 
-        short paddingSize = encryptWithSessionKey(apdubuf, ISO7816.OFFSET_CDATA, decryptedSize, apdu);
+        short paddingSize = encryptWithSessionKey(apdubuf, ISO7816.OFFSET_CDATA, decryptedSize);
         apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, (short) (decryptedSize + paddingSize));
     }
 
@@ -287,6 +324,8 @@ public class QTSesamApplet extends javacard.framework.Applet {
         } catch (CryptoException e) {
             ISOException.throwIt((short) ((short) 0xF300 | e.getReason()));
         }
+
+        m_secureChannelExists = true;
     }
 
     private void generatePublicDH(APDU apdu) {
@@ -338,6 +377,10 @@ public class QTSesamApplet extends javacard.framework.Applet {
     }
 
     private short decryptAPDU(APDU apdu) {
+        if (!m_secureChannelExists) {
+            ISOException.throwIt(SW_SECURE_CHANNEL_DOES_NOT_EXISTS);
+        }
+
         byte[] apdubuf = apdu.getBuffer();
         short datalen = apdu.setIncomingAndReceive();
 
@@ -349,7 +392,7 @@ public class QTSesamApplet extends javacard.framework.Applet {
     }
 
 
-    private byte encryptWithSessionKey(byte[] src, byte from, short size, APDU apdu) {
+    private byte encryptWithSessionKey(byte[] src, byte from, short size) {
         byte paddingSize = (byte) (16 - (size % 16));
 
         for (short i = 0; i < paddingSize; i++) {
@@ -364,8 +407,8 @@ public class QTSesamApplet extends javacard.framework.Applet {
 
     // VERIFY PIN
     void VerifyPIN(APDU apdu) {
+        short dataLen = decryptAPDU(apdu);
         byte[] apdubuf = apdu.getBuffer();
-        short dataLen = apdu.setIncomingAndReceive();
 
         // VERIFY PIN
         if (m_pin.check(apdubuf, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {

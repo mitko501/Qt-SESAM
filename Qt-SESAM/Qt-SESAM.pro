@@ -68,7 +68,9 @@ SOURCES += main.cpp \
     java_card/scutils.cpp \
     java_card/apdu.cpp \
     java_card/apduresponse.cpp \
-    java_card/securechannel.cpp
+    java_card/securechannel.cpp \
+    pinwindow.cpp \
+    changepindialog.cpp
 
 HEADERS  += \
     mainwindow.h \
@@ -90,7 +92,9 @@ HEADERS  += \
     java_card/scutils.h \
     java_card/apdu.h \
     java_card/apduresponse.h \
-    java_card/securechannel.h
+    java_card/securechannel.h \
+    pinwindow.h \
+    changepindialog.h
 
 FORMS += mainwindow.ui \
     optionsdialog.ui \
@@ -98,7 +102,9 @@ FORMS += mainwindow.ui \
     newcredentialsdialog.ui \
     masterpassworddialog.ui \
     servercertificatewidget.ui \
-    changemasterpassworddialog.ui
+    changemasterpassworddialog.ui \
+    pinwindow.ui \
+    changepindialog.ui
 
 RESOURCES += \
     QtSESAM.qrc

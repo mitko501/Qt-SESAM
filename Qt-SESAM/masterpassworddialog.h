@@ -44,15 +44,13 @@ public:
   void setRepeatPassword(bool);
   bool repeatedPasswordEntry(void) const;
   QString masterPassword(void) const;
-  bool wasAuthenticatedByCard() {
-      return authenticatedByCard;
-  }
 
 public slots:
   virtual void reject(void);
 
 signals:
   void closing(void);
+  void javaCardClicked(void);
 
 protected:
   void showEvent(QShowEvent*);
@@ -60,11 +58,9 @@ protected:
 
 private slots:
   void okClicked(void);
-  void javaCardClicked(void);
   void checkPasswords(void);
 
 private:
-  bool authenticatedByCard = false;
   Ui::MasterPasswordDialog *ui;
 
   QScopedPointer<MasterPasswordDialogPrivate> d_ptr;

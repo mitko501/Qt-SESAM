@@ -70,6 +70,7 @@
 #include "masterpassworddialog.h"
 #include "changemasterpassworddialog.h"
 #include "optionsdialog.h"
+#include "pinwindow.h"
 #include "easyselectorwidget.h"
 #include "countdownwidget.h"
 #include "expandablegroupbox.h"
@@ -86,6 +87,9 @@
 #include "exporter.h"
 #include "keepass2xmlreader.h"
 #include "passwordsafereader.h"
+#include "java_card/scutils.h"
+#include "java_card/securechannel.h"
+
 
 #include "qrencode.h"
 
@@ -116,6 +120,7 @@ public:
     , masterPasswordDialog(new MasterPasswordDialog(parent))
     , changeMasterPasswordDialog(new ChangeMasterPasswordDialog(parent))
     , optionsDialog(new OptionsDialog(parent))
+    , pinDialog(new PinWindow(parent))
     , progressDialog(new ProgressDialog(parent))
     , countdownWidget(new CountdownWidget)
     , trayMenu(Q_NULLPTR)
@@ -173,6 +178,7 @@ public:
   MasterPasswordDialog *masterPasswordDialog;
   ChangeMasterPasswordDialog *changeMasterPasswordDialog;
   OptionsDialog *optionsDialog;
+  PinWindow *pinDialog;
   ProgressDialog *progressDialog;
   CountdownWidget *countdownWidget;
   QMenu *trayMenu;
@@ -357,6 +363,9 @@ MainWindow::MainWindow(bool forceStart, QWidget *parent)
   QObject::connect(d->optionsDialog, SIGNAL(serverCertificatesUpdated(QList<QSslCertificate>)), SLOT(onServerCertificatesUpdated(QList<QSslCertificate>)));
   QObject::connect(d->masterPasswordDialog, SIGNAL(accepted()), SLOT(onMasterPasswordEntered()));
   QObject::connect(d->masterPasswordDialog, SIGNAL(closing()), SLOT(onMasterPasswordClosing()), Qt::DirectConnection);
+  QObject::connect(d->masterPasswordDialog, SIGNAL(javaCardClicked()), SLOT(javaCardAuthentication()));
+  QObject::connect(d->pinDialog, SIGNAL(rejected()), SLOT(rejectedPinDialog()));
+  QObject::connect(d->pinDialog, SIGNAL(accepted()), SLOT(acceptPinDialog()));
   QObject::connect(d->countdownWidget, SIGNAL(timeout()), SLOT(lockApplication()));
   QObject::connect(ui->actionChangeMasterPassword, SIGNAL(triggered(bool)), SLOT(changeMasterPassword()));
   QObject::connect(ui->actionDeleteOldBackupFiles, SIGNAL(triggered(bool)), SLOT(removeOutdatedBackupFiles()));
@@ -2823,17 +2832,16 @@ void MainWindow::enterMasterPassword(void)
 void MainWindow::onMasterPasswordEntered(void)
 {
   Q_D(MainWindow);
+  authenticate(d->masterPasswordDialog->masterPassword(), d->masterPasswordDialog->repeatedPasswordEntry());
+}
+
+void MainWindow::authenticate(QString masterPassword, bool repeatedPassword) {
+  Q_D(MainWindow);
   bool ok = true;
 
-  if (d->masterPasswordDialog->wasAuthenticatedByCard()) {
-      //d->masterPassword = "Not used anymore!!!";
-      show();
-      return;
-  }
-
   qsrand(static_cast<uint>(QDateTime::currentDateTime().toMSecsSinceEpoch()));
-  const QString masterPwd = d->masterPasswordDialog->masterPassword();
-  const bool repeatedPasswordEntry = d->masterPasswordDialog->repeatedPasswordEntry();
+  const QString masterPwd = masterPassword;
+  const bool repeatedPasswordEntry = repeatedPassword;
   if (!masterPwd.isEmpty()) {
     d->masterPassword = masterPwd;
     ok = restoreSettings();
@@ -3454,7 +3462,18 @@ void MainWindow::connectJC() {
   // Ask for public key
   // store public key in:
 
-  d->settings.setValue("java_card/public_key", QString::fromStdString("key"));
+  CryptoPP::Integer inte("0x1000000001");
+  std::cout << "Integer: " << std::hex << inte << std::endl;
+  std::string test;
+  for(int i = 0; i < inte.ByteCount(); i++) {
+      test.push_back(inte.GetByte(i));
+  }
+
+  std::cout << test.size() << " - " << test << std::endl;
+
+  d->settings.setValue("java_card/public_key", QString::fromStdString(test));
+  std::string newSTR = d->settings.value("java_card/public_key").toString().toStdString();
+  std::cout << newSTR.size() << " - " << newSTR << std::endl;
   d->optionsDialog->setJavaCard(true);
   saveUiSettings();
 
@@ -3467,4 +3486,75 @@ void MainWindow::removeJC() {
   d->optionsDialog->setJavaCard(false);
   d->settings.remove("java_card/public_key");
   saveUiSettings();
+}
+
+void MainWindow::showPinDialog(void)
+{
+  Q_D(MainWindow);
+  d->interactionSemaphore.acquire();
+  const int button = d->pinDialog->exec();
+  d->interactionSemaphore.release();
+}
+
+void MainWindow::javaCardAuthentication() {
+
+  showPinDialog();
+
+//  ui->putYourCard->setVisible(true);
+
+//  authenticatedByCard  = true;
+//  // TODO: Generate random number
+
+//  // Encrypt with:
+//  Q_D(MasterPasswordDialog);
+//  d->settings.value("java_card/public_key"); // Be aware of QXXXX type, depends on PKCS#11
+
+//  // Comunicate with java_card:
+//    // Find reader
+//    ui->putYourCard->show();
+//    // Find card
+//    // Exchange message
+
+//  // Check whether sent random number is equal to received
+//    // Accept/Reject(It should be possible to continue with login via admin password)
+
+//  accept();
+}
+
+void MainWindow::rejectedPinDialog() {
+  enterMasterPassword();
+}
+
+void MainWindow::acceptPinDialog() {
+  Q_D(MainWindow);
+  SCUtils sc;
+  sc.connectToCardAndSetQtSESAMApplet(); // TODO use public key from settings
+
+  SecureChannel channel(&sc);
+  QString qpin = d->pinDialog->getPin();
+  CryptoPP::SecByteBlock pin((byte*) qpin.toStdString().c_str(), qpin.size());
+
+  APDU pinVerification(0x55);
+  pinVerification.add_data(pin);
+
+  APDUResponse response = channel.sendToCardSecurely(&pinVerification);
+
+  if (!response.isSuccessful()) {
+    std::cout << "Wrong PIN!!" << std::endl;
+    // TODO show masterPasswordDialog again and write some message to user
+  }
+
+  APDU getMasterPassword(0x72);
+  APDUResponse adminPasswordResponse = channel.sendToCardSecurely(&getMasterPassword);
+
+  if (!adminPasswordResponse.isSuccessful()) {
+    std::cout << "Can't get admin password, error code:" << std::hex << adminPasswordResponse.getStatusCode() << std::endl;
+  }
+
+  std::string adminPasswordStd;
+  for(int i = 0; i < adminPasswordResponse.size(); i++) {
+      adminPasswordStd.push_back(adminPasswordResponse.response()[i]);
+  }
+
+  authenticate(QString::fromStdString(adminPasswordStd), false);
 }
