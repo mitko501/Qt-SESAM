@@ -21,6 +21,7 @@ public class QTSesamApplet extends javacard.framework.Applet {
     final static byte INS_GET_PUBLIC_KEY = (byte) 0x70;
     final static byte INS_GET_PUBLIC_KEY_MODULUS = (byte) 0x71;
     final static byte INS_GET_MASTER_PASSWORD = (byte) 0x72;
+    final static byte INS_STORE_MASTER_PASSWORD = (byte) 0x73;
 
     final static short ARRAY_LENGTH = (short) 0x100;
     final static short MAX_PASSWORD_LENGTH = (short) 0xFF;
@@ -29,7 +30,10 @@ public class QTSesamApplet extends javacard.framework.Applet {
 
     final static short SW_BAD_PIN = (short) 0x6900;
     final static short SW_SECURE_CHANNEL_DOES_NOT_EXISTS = (short) 0x6800;
-    private static final short SW_NOT_AUTHENTICATED = 0x6850;
+    static final short SW_NOT_AUTHENTICATED = 0x6850;
+    static final short SW_PIN_NOT_ACTIVATED = 0x6860;
+    static final short SW_WRONG_INPUT_SIZE = 0x6870;
+    static final short SW_MASTER_PASSWORD_NOT_STORED = 0x6880;
 
     final static short SW_Exception = (short) 0xff01;
     final static short SW_ArrayIndexOutOfBoundsException = (short) 0xff02;
@@ -60,10 +64,12 @@ public class QTSesamApplet extends javacard.framework.Applet {
     private byte m_ramArray[] = null;
     private byte m_ramArray2[] = null;
     // PERSISTENT ARRAY IN EEPROM
+    boolean m_pinActivated = false; // It won't be possible to verify pin until it is changed for the first time
     boolean m_access = false;
     boolean m_secureChannelExists = false;
     short m_masterPasswordLength = 0;
     private byte m_dataArray[] = null;
+    private boolean m_masterPasswordStored = false;
 
     /**
      * QTSesamApplet default constructor Only this class's install method should
@@ -94,14 +100,6 @@ public class QTSesamApplet extends javacard.framework.Applet {
         m_dataArray = new byte[ARRAY_LENGTH];
         Util.arrayFillNonAtomic(m_dataArray, (short) 0, ARRAY_LENGTH, (byte) 0);
 
-        m_dataArray[0] = 0x61; // temporary password admin
-        m_dataArray[1] = 0x64;
-        m_dataArray[2] = 0x6D;
-        m_dataArray[3] = 0x69;
-        m_dataArray[4] = 0x6E;
-
-        m_masterPasswordLength = 5;
-
         m_randomGenerator = RandomData.getInstance(RandomData.ALG_SECURE_RANDOM);
 
         m_ramArray = JCSystem.makeTransientByteArray(ARRAY_LENGTH, JCSystem.CLEAR_ON_DESELECT);
@@ -117,7 +115,7 @@ public class QTSesamApplet extends javacard.framework.Applet {
 
         Util.arrayFillNonAtomic(m_ramArray, (short) 0, (short) 4, (byte) 0x30);
         m_pin = new OwnerPIN((byte) 5, (byte) 4);
-        m_pin.update(m_ramArray, (byte) 0, (byte) 4); // set initial random pin
+        m_pin.update(m_ramArray, (byte) 0, (byte) 4); // set initial pin 0000
 
         m_keyPair = new KeyPair(KeyPair.ALG_RSA, KeyBuilder.LENGTH_RSA_1280);
         m_keyPair.genKeyPair();
@@ -198,6 +196,9 @@ public class QTSesamApplet extends javacard.framework.Applet {
                     case INS_GET_MASTER_PASSWORD:
                         getMasterPassword(apdu);
                         break;
+                    case INS_STORE_MASTER_PASSWORD:
+                        storeMasterPassword(apdu);
+                        break;
                     case INS_VERIFYPIN:
                         VerifyPIN(apdu);
                         break;
@@ -251,6 +252,19 @@ public class QTSesamApplet extends javacard.framework.Applet {
         }
     }
 
+    private void storeMasterPassword(APDU apdu) {
+        short dataLen = decryptAPDU(apdu);
+        byte[] apdubuf = apdu.getBuffer();
+
+        if (!m_access) {
+            ISOException.throwIt(SW_NOT_AUTHENTICATED);
+        }
+
+        m_masterPasswordStored = true;
+        m_masterPasswordLength = dataLen;
+        Util.arrayCopyNonAtomic(apdubuf, ISO7816.OFFSET_CDATA, m_dataArray, (short) 0, m_masterPasswordLength);
+    }
+
     private void getMasterPassword(APDU apdu) {
         if (!m_secureChannelExists) {
             ISOException.throwIt(SW_SECURE_CHANNEL_DOES_NOT_EXISTS);
@@ -258,6 +272,10 @@ public class QTSesamApplet extends javacard.framework.Applet {
 
         if (!m_access) {
             ISOException.throwIt(SW_NOT_AUTHENTICATED);
+        }
+
+        if (!m_masterPasswordStored) {
+            ISOException.throwIt(SW_MASTER_PASSWORD_NOT_STORED);
         }
 
         byte[] apdubuf = apdu.getBuffer();
@@ -411,10 +429,13 @@ public class QTSesamApplet extends javacard.framework.Applet {
         byte[] apdubuf = apdu.getBuffer();
 
         // VERIFY PIN
-        if (m_pin.check(apdubuf, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
-            ISOException.throwIt(SW_BAD_PIN);
+        if (!m_pin.check(apdubuf, ISO7816.OFFSET_CDATA, (byte) dataLen)) {
             m_access = false;
+            ISOException.throwIt(SW_BAD_PIN);
         } else {
+            if (!m_pinActivated) {
+                ISOException.throwIt(SW_PIN_NOT_ACTIVATED);
+            }
             m_access = true;
         }
     }
@@ -423,13 +444,23 @@ public class QTSesamApplet extends javacard.framework.Applet {
     // Be aware - this method will allow attacker to set own PIN - need to protected. 
     // E.g., by additional Admin PIN or all secret data of previous user needs to be reased 
     void SetPIN(APDU apdu) {
+        short dataLen = decryptAPDU(apdu);
         byte[] apdubuf = apdu.getBuffer();
-        short dataLen = apdu.setIncomingAndReceive();
         //set pin only after verifying an old one
+
+        if (dataLen != 8) {
+            ISOException.throwIt(SW_WRONG_INPUT_SIZE);
+        }
+
+        if (!m_pin.check(apdubuf, ISO7816.OFFSET_CDATA, (byte) 4)) {
+            m_access = false;
+            ISOException.throwIt(SW_BAD_PIN);
+        }
 
         /* implementation of verifying pin and then setting a new one from apdu */
         // SET NEW PIN
-        m_pin.update(apdubuf, ISO7816.OFFSET_CDATA, (byte) dataLen);
+        m_pin.update(apdubuf, (short) (ISO7816.OFFSET_CDATA + 4), (byte) 4);
+        m_pinActivated = true;
     }
 
 }
