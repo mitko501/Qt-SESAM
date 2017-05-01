@@ -3465,7 +3465,7 @@ void MainWindow::connectJC() {
   CryptoPP::Integer inte("0x1000000001");
   std::cout << "Integer: " << std::hex << inte << std::endl;
   std::string test;
-  for(int i = 0; i < inte.ByteCount(); i++) {
+  for(unsigned int i = 0; i < inte.ByteCount(); i++) {
       test.push_back(inte.GetByte(i));
   }
 
@@ -3552,7 +3552,7 @@ void MainWindow::acceptPinDialog() {
   }
 
   std::string adminPasswordStd;
-  for(int i = 0; i < adminPasswordResponse.size(); i++) {
+  for(unsigned int i = 0; i < adminPasswordResponse.size(); i++) {
       adminPasswordStd.push_back(adminPasswordResponse.response()[i]);
   }
 
