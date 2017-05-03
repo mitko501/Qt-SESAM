@@ -2,7 +2,15 @@
 #include <QObject>
 #include <QMessageBox>
 
+#ifdef _WIN32
+static char *pcsc_stringify_error(LONG rv)
+{
+ static char out[20];
+ sprintf_s(out, sizeof(out), "0x%08X", rv);
 
+ return out;
+}
+#endif
 
 SCUtils::SCUtils() {
   LONG rval;
@@ -159,11 +167,17 @@ std::string SCUtils::getCardFingerprint() {
 
   sha256.CalculateDigest(shaOutput, publicKey, _cardPublicKey.ByteCount());
 
+  // dynamic truncation
+  int offset   =  shaOutput[31] & 0xf ;
+  int bin_code = (shaOutput[offset]  & 0x7f) << 24
+     | (shaOutput[offset+1] & 0xff) << 16
+     | (shaOutput[offset+2] & 0xff) <<  8
+     | (shaOutput[offset+3] & 0xff) ;
+
+  int fingerprint = bin_code % 1000000;
+
   std::string output;
-  // VERY BAD EXAMPLE OF FINGERPRINT ALGORITHM
-  for(int i = 0; i < 10; i+=2) {
-    output.push_back((shaOutput[i] % 10) + 48);
-  }
+  output  = std::to_string(fingerprint);
 
   return output;
 }
