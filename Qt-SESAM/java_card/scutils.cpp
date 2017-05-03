@@ -9,8 +9,11 @@ SCUtils::SCUtils() {
   rval = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &_context);
 
   if (rval != SCARD_S_SUCCESS) {
-    printf("Fail during establishing context\n");
-    exit(0); // TODO: throw exception
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.warning(0,"Error", err);
+      messageBox.setFixedSize(500,200);
+      return;
   }
 
   LPTSTR pmszReaders = NULL;
@@ -24,9 +27,9 @@ SCUtils::SCUtils() {
   if (rval != SCARD_S_SUCCESS) {
       QString err = pcsc_stringify_error(rval);
       QMessageBox messageBox;
-      messageBox.critical(0,"Error", err);
+      messageBox.warning(0,"Error", err);
       messageBox.setFixedSize(500,200);
-    exit(0); // TODO: throw exception
+      throw;
   }
 
   pReader = pmszReaders;
@@ -42,8 +45,9 @@ SCUtils::SCUtils() {
   if (SCARD_S_SUCCESS != rval) {
       QString err = pcsc_stringify_error(rval);
       QMessageBox messageBox;
-      messageBox.critical(0,"Error", err);
+      messageBox.warning(0,"Error", err);
       messageBox.setFixedSize(500,200);
+      throw;
   }
 }
 
@@ -55,7 +59,7 @@ const SCARD_IO_REQUEST SCUtils::determineProtocolStructure() {
       return *SCARD_PCI_T1;
     default:
       printf("Can't determine protocol structure\n");
-      exit(0);
+      exit(-1);
   }
 }
 
@@ -82,8 +86,11 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
   }
 
   if (rval != SCARD_S_SUCCESS) {
-    printf("Connection to card was unsuccessful.\n");
-    exit(0); // TODO throw exception
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.warning(0,"Error", err);
+      messageBox.setFixedSize(500,200);
+      return;
   }
 
   APDUResponse response;
@@ -92,7 +99,11 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
 
   if (rval != SCARD_S_SUCCESS || !response.isSuccessful()) {
     printf("Unable to set Qt-sesam applet\n");
-    exit(0);
+    QString err = pcsc_stringify_error(rval);
+    QMessageBox messageBox;
+    messageBox.warning(0,"Error", err);
+    messageBox.setFixedSize(500,200);
+    return;
   }
 }
 
@@ -103,7 +114,7 @@ void SCUtils::readCardPublicKey() {
   sendToCard(&getPK, &response);
   if(!response.isSuccessful()) {
     printf("Unable to get Public Key of card\n");
-    exit(0);
+    return;
   }
 
   _cardPublicKey = response.asInteger();
@@ -115,7 +126,7 @@ void SCUtils::readCardPublicKey() {
   sendToCard(&getModulus, &response2);
   if(!response2.isSuccessful()) {
     printf("Unable to get Modulus of card\n");
-    exit(0);
+    return;
   }
 
   _cardModulus = response2.asInteger();

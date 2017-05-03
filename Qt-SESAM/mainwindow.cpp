@@ -3472,69 +3472,74 @@ void MainWindow::onSelectLanguage(QAction *action)
 void MainWindow::connectJC() {
   Q_D(MainWindow);
 
-  if (d->scUtils == NULL) {
-    d->scUtils = new SCUtils();
-  }
+  try {
+        if (d->scUtils == NULL) {
+          d->scUtils = new SCUtils();
+        }
+        // Save public key of card to local storage
+        d->scUtils->connectToCardAndSetQtSESAMApplet();
+        d->scUtils->readCardPublicKey();
+        std::string fingerprint = d->scUtils->getCardFingerprint();
 
-  // Save public key of card to local storage
-  d->scUtils->connectToCardAndSetQtSESAMApplet();
-  d->scUtils->readCardPublicKey();
-  std::string fingerprint = d->scUtils->getCardFingerprint();
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(this, "Is this fingerprint of you card?", QString::fromStdString(fingerprint),
+                                      QMessageBox::Yes|QMessageBox::No);
+        if (reply == QMessageBox::No) {
+          std::cout << "Evil send us wrong public key" << std::endl;
+          QApplication::quit();
+        }
 
-  QMessageBox::StandardButton reply;
-  reply = QMessageBox::question(this, "Is this fingerprint of you card?", QString::fromStdString(fingerprint),
-                                QMessageBox::Yes|QMessageBox::No);
-  if (reply == QMessageBox::No) {
-    std::cout << "Evil send us wrong public key" << std::endl;
-    QApplication::quit();
-  }
+        std::string pk = d->scUtils->getCardPublicKey();
+        std::string mod = d->scUtils->getCardModulus();
 
-  std::string pk = d->scUtils->getCardPublicKey();
-  std::string mod = d->scUtils->getCardModulus();
+        QString qmod; // not sure why but QString::fromxxxx doesn't work for 160 bytes, it is safer to use loop
+        QString qpk;
 
-  QString qmod; // not sure why but QString::fromxxxx doesn't work for 160 bytes, it is safer to use loop
-  QString qpk;
+        for (auto all : pk) {
+          qpk.push_back(QChar::fromLatin1(all));
+        }
 
-  for (auto all : pk) {
-    qpk.push_back(QChar::fromLatin1(all));
-  }
+        for (auto all : mod) {
+          qmod.push_back(QChar::fromLatin1(all));
+        }
 
-  for (auto all : mod) {
-    qmod.push_back(QChar::fromLatin1(all));
-  }
+        d->settings.setValue("java_card/public_key", qpk);
+        d->settings.setValue("java_card/modulus", qmod);
 
-  d->settings.setValue("java_card/public_key", qpk);
-  d->settings.setValue("java_card/modulus", qmod);
+        if (d->secureChannel == NULL) {
+          d->secureChannel = new SecureChannel(d->scUtils);
+        }
 
-  if (d->secureChannel == NULL) {
-    d->secureChannel = new SecureChannel(d->scUtils);
-  }
+        // Ask user for pin
+        d->interactionSemaphore.release();
+        d->pinDialog->setConnectingCard(true);
+        showPinDialog();
+        d->pinDialog->setConnectingCard(false);
 
-  // Ask user for pin
-  d->interactionSemaphore.release();
-  d->pinDialog->setConnectingCard(true);
-  showPinDialog();
-  d->pinDialog->setConnectingCard(false);
+        // Send admin password to card over secure channel
+        APDU storeAdminPassword(0x73);
+        std::string masterPassword;
 
-  // Send admin password to card over secure channel
-  APDU storeAdminPassword(0x73);
-  std::string masterPassword;
+        for (int i = 0; i < d->masterPassword.size(); i++) {
+          masterPassword.push_back(d->masterPassword.data()[i].toLatin1());
+        }
 
-  for (int i = 0; i < d->masterPassword.size(); i++) {
-    masterPassword.push_back(d->masterPassword.data()[i].toLatin1());
-  }
+        storeAdminPassword.add_data(masterPassword.size(), (byte*) masterPassword.c_str());
 
-  storeAdminPassword.add_data(masterPassword.size(), (byte*) masterPassword.c_str());
+        APDUResponse response = d->secureChannel->sendToCardSecurely(&storeAdminPassword);
 
-  APDUResponse response = d->secureChannel->sendToCardSecurely(&storeAdminPassword);
+        if (!response.isSuccessful()) {
+          std::cout << "Can't store master password!" << std::endl;
+          return;
+        }
 
-  if (!response.isSuccessful()) {
-    std::cout << "Can't store master password!" << std::endl;
-    return;
-  }
+        d->optionsDialog->setJavaCard(true);
+        saveUiSettings();
+    }  catch (...) {
 
-  d->optionsDialog->setJavaCard(true);
-  saveUiSettings();
+    }
+
+
 }
 
 void MainWindow::removeJC() {
