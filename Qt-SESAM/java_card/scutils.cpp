@@ -42,7 +42,11 @@ SCUtils::SCUtils() {
 
   pReader = pmszReaders;
   while ('\0' != *pReader) {
-    std::wstring ws(pReader);
+    #ifdef _WIN32
+      std::wstring ws(pReader);
+    #else
+      std::string ws(pReader);
+    #endif
     std::string reader_name(ws.begin(), ws.end());
     _readers.push_back(reader_name);
     
