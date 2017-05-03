@@ -1,4 +1,7 @@
 #include "scutils.h"
+#include <QObject>
+#include <QMessageBox>
+
 
 
 SCUtils::SCUtils() {
@@ -6,8 +9,11 @@ SCUtils::SCUtils() {
   rval = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &_context);
 
   if (rval != SCARD_S_SUCCESS) {
-    printf("Fail during establishing context\n");
-    exit(0); // TODO: throw exception
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.warning(0,"Error", err);
+      messageBox.setFixedSize(500,200);
+      return;
   }
 
   LPTSTR pmszReaders = NULL;
@@ -19,8 +25,11 @@ SCUtils::SCUtils() {
   rval = SCardListReaders(_context, NULL, (LPTSTR)&pmszReaders, &cch );
 
   if (rval != SCARD_S_SUCCESS) {
-    printf("Fail during listing reading\n");
-    exit(0); // TODO: throw exception
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.warning(0,"Error", err);
+      messageBox.setFixedSize(500,200);
+      throw;
   }
 
   pReader = pmszReaders;
@@ -34,8 +43,13 @@ SCUtils::SCUtils() {
 
   // Free the memory pmszReaders.
   rval = SCardFreeMemory(_context, pmszReaders);
-  if (SCARD_S_SUCCESS != rval)
-    printf("Failed to free memory\n");
+  if (SCARD_S_SUCCESS != rval) {
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.warning(0,"Error", err);
+      messageBox.setFixedSize(500,200);
+      throw;
+  }
 }
 
 const SCARD_IO_REQUEST SCUtils::determineProtocolStructure() {
@@ -46,7 +60,7 @@ const SCARD_IO_REQUEST SCUtils::determineProtocolStructure() {
       return *SCARD_PCI_T1;
     default:
       printf("Can't determine protocol structure\n");
-      exit(0);
+      exit(-1);
   }
 }
 
@@ -62,7 +76,7 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
   // Loop over all readers and find card connected
   for (auto reader : _readers) {
     int tries = NUMBER_OF_TRIES;
-    while (tries && (rval = SCardConnect(_context, (LPCTSTR)_readers.at(0).c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
+    while (tries && (rval = SCardConnect(_context, (LPCTSTR) reader.c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
         tries--;
     }
 
@@ -73,8 +87,11 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
   }
 
   if (rval != SCARD_S_SUCCESS) {
-    printf("Connection to card was unsuccessful.\n");
-    exit(0); // TODO throw exception
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.warning(0,"Error", err);
+      messageBox.setFixedSize(500,200);
+      return;
   }
 
   APDUResponse response;
@@ -83,7 +100,11 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
 
   if (rval != SCARD_S_SUCCESS || !response.isSuccessful()) {
     printf("Unable to set Qt-sesam applet\n");
-    exit(0);
+    QString err = pcsc_stringify_error(rval);
+    QMessageBox messageBox;
+    messageBox.warning(0,"Error", err);
+    messageBox.setFixedSize(500,200);
+    return;
   }
 }
 
@@ -94,7 +115,7 @@ void SCUtils::readCardPublicKey() {
   sendToCard(&getPK, &response);
   if(!response.isSuccessful()) {
     printf("Unable to get Public Key of card\n");
-    exit(0);
+    return;
   }
 
   _cardPublicKey = response.asInteger();
@@ -106,7 +127,7 @@ void SCUtils::readCardPublicKey() {
   sendToCard(&getModulus, &response2);
   if(!response2.isSuccessful()) {
     printf("Unable to get Modulus of card\n");
-    exit(0);
+    return;
   }
 
   _cardModulus = response2.asInteger();
@@ -153,7 +174,7 @@ std::string SCUtils::getCardPublicKey() {
   _cardPublicKey.Encode(pk, _cardPublicKey.ByteCount());
 
   std::string result;
-  for (int i = 0; i < _cardPublicKey.ByteCount(); i++) {
+  for (unsigned int i = 0; i < _cardPublicKey.ByteCount(); i++) {
       result.push_back(pk[i]);
   }
 
@@ -166,7 +187,7 @@ std::string SCUtils::getCardModulus() {
   _cardModulus.Encode(mod, _cardModulus.ByteCount());
 
   std::string result;
-  for (int i = 0; i < _cardModulus.ByteCount(); i++) {
+  for (unsigned int i = 0; i < _cardModulus.ByteCount(); i++) {
       result.push_back(mod[i]);
   }
 
