@@ -1,4 +1,7 @@
 #include "scutils.h"
+#include <QObject>
+#include <QMessageBox>
+
 
 
 SCUtils::SCUtils() {
@@ -19,7 +22,10 @@ SCUtils::SCUtils() {
   rval = SCardListReaders(_context, NULL, (LPTSTR)&pmszReaders, &cch );
 
   if (rval != SCARD_S_SUCCESS) {
-    printf("Fail during listing reading\n");
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.critical(0,"Error", err);
+      messageBox.setFixedSize(500,200);
     exit(0); // TODO: throw exception
   }
 
@@ -33,8 +39,12 @@ SCUtils::SCUtils() {
 
   // Free the memory pmszReaders.
   rval = SCardFreeMemory(_context, pmszReaders);
-  if (SCARD_S_SUCCESS != rval)
-    printf("Failed to free memory\n");
+  if (SCARD_S_SUCCESS != rval) {
+      QString err = pcsc_stringify_error(rval);
+      QMessageBox messageBox;
+      messageBox.critical(0,"Error", err);
+      messageBox.setFixedSize(500,200);
+  }
 }
 
 const SCARD_IO_REQUEST SCUtils::determineProtocolStructure() {
@@ -61,7 +71,7 @@ void SCUtils::connectToCardAndSetQtSESAMApplet() {
   // Loop over all readers and find card connected
   for (auto reader : _readers) {
     int tries = NUMBER_OF_TRIES;
-    while (tries && (rval = SCardConnect(_context, (LPCTSTR)_readers.at(0).c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
+    while (tries && (rval = SCardConnect(_context, (LPCTSTR) reader.c_str(), SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &_card, &_protocol)) != SCARD_S_SUCCESS) {
         tries--;
     }
 
@@ -152,7 +162,7 @@ std::string SCUtils::getCardPublicKey() {
   _cardPublicKey.Encode(pk, _cardPublicKey.ByteCount());
 
   std::string result;
-  for (int i = 0; i < _cardPublicKey.ByteCount(); i++) {
+  for (unsigned int i = 0; i < _cardPublicKey.ByteCount(); i++) {
       result.push_back(pk[i]);
   }
 
@@ -165,7 +175,7 @@ std::string SCUtils::getCardModulus() {
   _cardModulus.Encode(mod, _cardModulus.ByteCount());
 
   std::string result;
-  for (int i = 0; i < _cardModulus.ByteCount(); i++) {
+  for (unsigned int i = 0; i < _cardModulus.ByteCount(); i++) {
       result.push_back(mod[i]);
   }
 
