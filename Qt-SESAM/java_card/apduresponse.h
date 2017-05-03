@@ -1,8 +1,13 @@
 #ifndef APDURESPONSE_H
 #define APDURESPONSE_H
 
-#include "PCSC/winscard.h"
 #include "integer.h"
+
+#ifdef _WIN32
+  #include <winscard.h>
+#else
+  #include "PCSC/winscard.h"
+#endif
 
 class APDUResponse {
 

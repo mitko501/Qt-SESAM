@@ -2,11 +2,16 @@
 #define SCUTILS_H
 
 #include <vector>
-#include "PCSC/winscard.h"
 #include "apdu.h"
 #include "apduresponse.h"
 #include "rsa.h"
 #include "osrng.h"
+
+#ifdef _WIN32
+  #include <winscard.h>
+#else
+  #include "PCSC/winscard.h"
+#endif
 
 #define NUMBER_OF_TRIES 50
 

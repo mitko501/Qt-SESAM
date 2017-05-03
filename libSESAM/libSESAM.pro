@@ -36,6 +36,8 @@ win32-msvc* {
     DEFINES -= UNICODE
 }
 
+win32: QMAKE_CXXFLAGS += -march=native
+
 include(3rdparty/bigint/bigint.pri)
 include(3rdparty/cryptopp/cryptopp.pri)
 

@@ -26,7 +26,8 @@ QT += core gui widgets concurrent network xml
 
 TRANSLATIONS = $$files(translations/QtSESAM_*.ts)
 
-LIBS += -L/usr/include/PCSC -lpcsclite
+unix: LIBS += -L/usr/include/PCSC -lpcsclite
+win32: LIBS += C:/Users/charlliz/Documents/Projekt2/Qt-SESAM/WinSCard.dll
 
 VERSION_PE_HEADER = 2.0
 

@@ -7,7 +7,11 @@
 #include <cstring>
 #include "integer.h"
 
-#include "PCSC/winscard.h"
+#ifdef _WIN32
+  #include <winscard.h>
+#else
+  #include "PCSC/winscard.h"
+#endif
 
 class APDU {
 

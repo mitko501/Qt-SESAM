@@ -25,7 +25,8 @@ SCUtils::SCUtils() {
 
   pReader = pmszReaders;
   while ('\0' != *pReader) {
-    std::string reader_name(pReader);
+    std::wstring ws(pReader);
+    std::string reader_name(ws.begin(), ws.end());
     _readers.push_back(reader_name);
     
     pReader = pReader + reader_name.size() + 1;

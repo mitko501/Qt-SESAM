@@ -19,6 +19,10 @@ USING_NAMESPACE(CryptoPP)
 
 bool TestSettings()
 {
+	#if defined(__MINGW32__)
+		using CryptoPP::memcpy_s;
+	#endif
+	
 	bool pass = true;
 
 	std::cout << "\nTesting Settings...\n\n";
