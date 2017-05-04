@@ -20,6 +20,7 @@ Following this guide all should work properly, if not please check:
 - If you are building right project - Qt-SESAM not SESAM2Chrome or else
 - If you are not missing pcsc-lite package
 - Try uncheck shadow build in QT Creator
+
 If problems persist do not hesitate to write to us. 
 
 ### Windows
@@ -29,7 +30,7 @@ If you have problems with Winscard.lib try to copy this lib to project folder an
 ## For reviewers - Where to look for our changes
 - **Qt-SESAM/java_card**  - extended application code
 - **java_card_application** - Javacard Applet
-- **docs** - presentation, project design
+- **doc** - presentation, project design
 
 
 ###### Below is the original description of Qt-SESAM application.
