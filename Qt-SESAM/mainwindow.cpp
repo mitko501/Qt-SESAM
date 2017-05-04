@@ -3545,10 +3545,22 @@ void MainWindow::connectJC() {
 void MainWindow::removeJC() {
   Q_D(MainWindow);
   // I think it is not necessary to contact Card at all
-  // Only thing to do here is to remove public_key from settings
+  // Only things to do here is to remove public_key from settings +
+  // forget old secure channel
   d->optionsDialog->setJavaCard(false);
   d->settings.remove("java_card/public_key");
   d->settings.remove("java_card/modulus");
+
+  if (d->secureChannel != NULL) {
+    delete d->secureChannel;
+    d->secureChannel = NULL;
+  }
+
+  if (d->scUtils != NULL) {
+    delete d->scUtils;
+    d->scUtils = NULL;
+  }
+
   saveUiSettings();
 }
 

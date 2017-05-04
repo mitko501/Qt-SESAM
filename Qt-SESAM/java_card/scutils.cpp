@@ -224,6 +224,24 @@ SCUtils::~SCUtils() {
   if (SELECT_APPLET_APDU != NULL) {
     delete SELECT_APPLET_APDU;
   }
+  LONG rval;
+  rval = SCardDisconnect(_card, SCARD_UNPOWER_CARD);
+
+  if (rval != SCARD_S_SUCCESS) {
+    QString err = pcsc_stringify_error(rval);
+    QMessageBox messageBox;
+    messageBox.warning(0,"Error", err);
+    messageBox.setFixedSize(500,200);
+  }
+
+  rval = SCardReleaseContext(_context);
+
+  if (rval != SCARD_S_SUCCESS) {
+    QString err = pcsc_stringify_error(rval);
+    QMessageBox messageBox;
+    messageBox.warning(0,"Error", err);
+    messageBox.setFixedSize(500,200);
+  }
 }
 
 
