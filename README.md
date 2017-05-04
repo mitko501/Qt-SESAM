@@ -7,7 +7,7 @@
 
  
 ## About
-The goal of this project was to implement extension of Qt-SESAM application which allow user authenticate with security token - JavaCard. Card and application are communicating through secure channel to prevent multiple kind of attacks. Communication between them is secured by AES-128 with keys generated randomly for each seddion and using Diffie-Hellman for key exchange.
+The goal of this project was to implement extension of Qt-SESAM application which allow user authenticate with security token - JavaCard. Card and application are communicating through secure channel to prevent multiple kind of attacks. Communication between them is secured by AES-128 with keys generated randomly for each session and using Diffie-Hellman for key exchange.
 
 ## How to build
 Extension of application is using functions defined in **winscard.h** header file  for communication with card.
@@ -16,7 +16,11 @@ In Linux winscard.h is provided by **pcsc-lite** package and in Windows by **Win
 ### Linux
 Link to original guide:
 https://github.com/ola-ct/Qt-SESAM/wiki/Build-for-Linux
-Following this guide all should work properly, if not please check if you are not missing pcsc-lite package or try uncheck shadow build in QT Creator. If problems persist do not hesitate to write to us. 
+Following this guide all should work properly, if not please check:
+- If you are building right project - Qt-SESAM not SESAM2Chrome or else
+- If you are not missing pcsc-lite package
+- Try uncheck shadow build in QT Creator
+If problems persist do not hesitate to write to us. 
 
 ### Windows
 With Qt Creator open the .pro file, press F5 to compile and run in debug mode.
