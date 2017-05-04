@@ -166,10 +166,16 @@ std::string SCUtils::getCardFingerprint() {
   CryptoPP::SHA256 sha256;
 
   byte shaOutput[32];
-  byte publicKey[_cardPublicKey.ByteCount()];
-  _cardPublicKey.Encode(publicKey, _cardPublicKey.ByteCount());
 
-  sha256.CalculateDigest(shaOutput, publicKey, _cardPublicKey.ByteCount());
+  byte publicKey[_cardPublicKey.ByteCount()];
+  byte modulus[_cardModulus.ByteCount()];
+
+  _cardPublicKey.Encode(publicKey, _cardPublicKey.ByteCount());
+  _cardModulus.Encode(modulus, _cardModulus.ByteCount());
+
+  sha256.Update(publicKey, _cardPublicKey.ByteCount());
+  sha256.Update(modulus, _cardModulus.ByteCount());
+  sha256.Final(shaOutput);
 
   // dynamic truncation
   int offset   =  shaOutput[31] & 0xf ;
